@@ -1,0 +1,29 @@
+{
+  "name": "wechat-h5-devtools",
+  "version": "1.1.2",
+  "description": "微信公众号 / 小程序前端调试与排版分析工具链 (WeChat H5 & MiniProgram DevTools)",
+  "main": "wechat_h5_devtools/extractor/webcrack_runner.js",
+  "scripts": {
+    "deobfuscate": "node wechat_h5_devtools/extractor/webcrack_runner.js",
+    "devtools": "chii start -p 8080",
+    "test": "node -c wechat_h5_devtools/extractor/webcrack_runner.js"
+  },
+  "keywords": [
+    "wechat",
+    "devtools",
+    "cdp",
+    "web-inspector",
+    "ast",
+    "webcrack",
+    "miniprogram"
+  ],
+  "author": "markx520 <markx520@users.noreply.github.com>",
+  "license": "CC-BY-NC-SA-4.0",
+  "dependencies": {
+    "chii": "^1.15.5",
+    "webcrack": "^2.14.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

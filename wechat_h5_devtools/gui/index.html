@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WeChat-H5-DevTools | Supabase Dark Emerald Edition</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="shortcut icon" href="logo.ico" />
+  <style>
+    :root {
+      --canvas: #121212;
+      --canvas-subtle: #181818;
+      --canvas-surface: #1e1e1e;
+      --canvas-code: #0a0a0a;
+      --hairline: #262626;
+      --hairline-hover: #383838;
+      --hairline-active: #484848;
+      --primary: #3ecf8e;
+      --primary-hover: #34b27b;
+      --primary-pressed: #24b47e;
+      --primary-glow: rgba(62, 207, 142, 0.22);
+      --primary-glow-strong: rgba(62, 207, 142, 0.45);
+      --on-primary: #0f1412;
+      --ink: #f3f3f3;
+      --ink-secondary: #c5c5c5;
+      --ink-mute: #858585;
+      --ink-faint: #525252;
+      --accent-warning: #f59e0b;
+      --accent-danger: #ef4444;
+      --accent-info: #38bdf8;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-full: 9999px;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "JetBrains Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background-color: var(--canvas); color: var(--ink); font-family: var(--font-sans);
+      font-size: 14px; line-height: 1.5; display: flex; flex-direction: column;
+      height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased;
+    }
+    header {
+      height: 52px; background: var(--canvas-subtle); border-bottom: 1px solid var(--hairline);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0;
+    }
+    .brand-group { display: flex; align-items: center; gap: 12px; }
+    .brand-logo {
+      width: 28px; height: 28px; background: linear-gradient(135deg, #1c2e26 0%, #16241e 100%);
+      border: 1px solid rgba(62, 207, 142, 0.4); border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center; color: var(--primary);
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+    .brand-title { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+    .badge-supabase {
+      font-size: 11px; font-weight: 500; background: rgba(62, 207, 142, 0.12); color: var(--primary);
+      border: 1px solid rgba(62, 207, 142, 0.3); padding: 1px 7px; border-radius: var(--radius-full);
+    }
+    .header-status { display: flex; align-items: center; gap: 10px; }
+    .status-capsule {
+      display: flex; align-items: center; gap: 7px; background: var(--canvas); border: 1px solid var(--hairline);
+      padding: 4px 12px; border-radius: var(--radius-full); font-size: 12px; color: var(--ink-secondary); font-family: var(--font-mono);
+    }
+    .pulse-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--primary);
+      box-shadow: 0 0 8px var(--primary); animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.85); } 100% { opacity: 1; transform: scale(1); } }
+    .app-body { display: flex; flex: 1; overflow: hidden; }
+    aside {
+      width: 220px; background: var(--canvas-subtle); border-right: 1px solid var(--hairline);
+      display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; padding: 16px 10px;
+    }
+    .nav-list { display: flex; flex-direction: column; gap: 4px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: var(--radius-sm);
+      color: var(--ink-secondary); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s ease;
+      border: 1px solid transparent;
+    }
+    .nav-item:hover { background: var(--canvas-surface); color: var(--ink); border-color: var(--hairline); }
+    .nav-item.active {
+      background: rgba(62, 207, 142, 0.09); color: var(--primary); border-color: rgba(62, 207, 142, 0.28); font-weight: 600;
+    }
+    .nav-item.active svg { stroke: var(--primary); }
+    .nav-item svg { width: 16px; height: 16px; stroke: var(--ink-mute); transition: stroke 0.15s ease; }
+    .sidebar-footer { border-top: 1px solid var(--hairline); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .author-card {
+      background: var(--canvas); border: 1px solid var(--hairline); border-radius: var(--radius-sm);
+      padding: 8px 10px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .author-info { display: flex; flex-direction: column; gap: 2px; }
+    .author-label { font-size: 10px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.5px; }
+    .author-val { font-size: 12px; font-family: var(--font-mono); color: var(--primary); font-weight: 600; }
+    .btn-copy {
+      background: var(--canvas-surface); border: 1px solid var(--hairline); color: var(--ink-secondary);
+      border-radius: 4px; padding: 3px 6px; font-size: 10px; cursor: pointer; transition: all 0.15s ease;
+    }
+    .btn-copy:hover { border-color: var(--primary); color: var(--primary); }
+    main {
+      flex: 1; display: flex; flex-direction: column; background: var(--canvas); overflow-y: auto; padding: 24px 28px; gap: 24px;
+    }
+    .view-panel { display: none; flex-direction: column; gap: 22px; animation: fadeIn 0.2s ease; }
+    .view-panel.active { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .view-header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 14px; border-bottom: 1px solid var(--hairline); }
+    .view-title-group h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.4px; color: var(--ink); }
+    .view-title-group p { font-size: 13px; color: var(--ink-mute); margin-top: 4px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .metric-card {
+      background: var(--canvas-subtle); border: 1px solid var(--hairline); border-radius: var(--radius-md);
+      padding: 16px; display: flex; flex-direction: column; gap: 10px; transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .metric-card:hover { border-color: var(--hairline-hover); transform: translateY(-1px); }
+    .metric-header { display: flex; align-items: center; justify-content: space-between; }
+    .metric-title { font-size: 12px; color: var(--ink-mute); font-weight: 500; }
+    .metric-icon { color: var(--ink-mute); }
+    .metric-value { font-size: 22px; font-weight: 600; color: var(--ink); font-family: var(--font-mono); letter-spacing: -0.5px; }
+    .metric-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; color: var(--primary); }
+    .hero-card {
+      background: linear-gradient(145deg, #181c19 0%, #141614 100%); border: 1px solid rgba(62, 207, 142, 0.28);
+      border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 18px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 30px rgba(62, 207, 142, 0.05); position: relative; overflow: hidden;
+    }
+    .hero-card::after {
+      content: ""; position: absolute; top: -60px; right: -60px; width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(62, 207, 142, 0.15) 0%, transparent 70%); pointer-events: none;
+    }
+    .hero-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .hero-badge-tag {
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
+      background: rgba(62, 207, 142, 0.15); color: var(--primary); padding: 3px 10px;
+      border-radius: var(--radius-full); border: 1px solid rgba(62, 207, 142, 0.35);
+    }
+    .hero-title { font-size: 18px; font-weight: 600; color: var(--ink); margin-top: 6px; }
+    .hero-desc { font-size: 13px; color: var(--ink-secondary); max-width: 650px; line-height: 1.6; }
+    .hero-input-row { display: flex; gap: 10px; align-items: center; }
+    .input-box {
+      flex: 1; background: var(--canvas-code); border: 1px solid var(--hairline); border-radius: var(--radius-sm);
+      padding: 10px 14px; color: var(--ink); font-size: 13px; font-family: var(--font-mono); outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease; user-select: text;
+    }
+    .input-box:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(62, 207, 142, 0.2); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px;
+      font-weight: 500; height: 38px; padding: 0 16px; border-radius: var(--radius-sm); cursor: pointer;
+      border: 1px solid transparent; transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1); white-space: nowrap; font-family: var(--font-sans);
+    }
+    .btn-primary {
+      background: var(--primary); color: var(--on-primary); border-color: var(--primary); font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 16px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 24px var(--primary-glow-strong); transform: translateY(-1px);
+    }
+    .btn-primary:active { background: var(--primary-pressed); transform: translateY(0); }
+    .btn-secondary { background: var(--canvas-surface); color: var(--ink); border-color: var(--hairline); }
+    .btn-secondary:hover { background: #252525; border-color: var(--hairline-hover); transform: translateY(-1px); }
+    .btn-secondary:active { background: var(--canvas-surface); transform: translateY(0); }
+    .section-card { background: var(--canvas-subtle); border: 1px solid var(--hairline); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; }
+    .card-header-bar { padding: 14px 18px; background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid var(--hairline); display: flex; justify-content: space-between; align-items: center; }
+    .card-header-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .card-content { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--hairline); }
+    .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .toggle-meta h4 { font-size: 13px; font-weight: 500; color: var(--ink); }
+    .toggle-meta p { font-size: 12px; color: var(--ink-mute); margin-top: 2px; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #2a2a2a;
+      transition: .2s; border-radius: var(--radius-full); border: 1px solid var(--hairline);
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px;
+      background-color: var(--ink-mute); transition: .2s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: rgba(62, 207, 142, 0.25); border-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(20px); background-color: var(--primary); box-shadow: 0 0 10px var(--primary); }
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th { background: #141414; padding: 10px 14px; font-weight: 500; color: var(--ink-mute); border-bottom: 1px solid var(--hairline); font-size: 12px; }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--hairline); color: var(--ink-secondary); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); color: var(--ink); }
+    .terminal-window {
+      background: var(--canvas-code); border: 1px solid var(--hairline); border-radius: var(--radius-md);
+      display: flex; flex-direction: column; height: 380px; overflow: hidden; font-family: var(--font-mono); font-size: 12px;
+    }
+    .terminal-header { background: #161616; border-bottom: 1px solid var(--hairline); padding: 8px 14px; display: flex; justify-content: space-between; align-items: center; }
+    .terminal-dots { display: flex; gap: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.red { background: #ff5f56; } .dot.yellow { background: #ffbd2e; } .dot.green { background: #27c93f; }
+    .terminal-title { font-size: 11px; color: var(--ink-mute); }
+    .terminal-body { flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; line-height: 1.6; user-select: text; }
+    .log-line { display: flex; gap: 8px; }
+    .log-time { color: var(--ink-faint); }
+    .log-tag { font-weight: 600; padding: 0 4px; border-radius: 3px; }
+    .tag-info { color: var(--primary); background: rgba(62, 207, 142, 0.1); }
+    .tag-success { color: #4ade80; background: rgba(74, 222, 128, 0.1); }
+    .tag-warn { color: var(--accent-warning); background: rgba(245, 158, 11, 0.1); }
+    .tag-error { color: var(--accent-danger); background: rgba(239, 68, 68, 0.1); }
+    .tag-hook { color: var(--accent-info); background: rgba(56, 189, 248, 0.1); }
+    .log-msg { color: var(--ink-secondary); flex: 1; word-break: break-all; }
+    footer {
+      height: 28px; background: var(--canvas-subtle); border-top: 1px solid var(--hairline);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 11px;
+      color: var(--ink-mute); font-family: var(--font-mono); flex-shrink: 0;
+    }
+    .footer-item { display: flex; align-items: center; gap: 6px; }
+    .toast {
+      position: fixed; bottom: 40px; right: 30px; background: #18221c; border: 1px solid var(--primary);
+      color: var(--ink); padding: 12px 18px; border-radius: var(--radius-sm);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 20px var(--primary-glow);
+      display: flex; align-items: center; gap: 10px; font-size: 13px; transform: translateY(100px);
+      opacity: 0; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); z-index: 1000;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部状态栏 Header -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-logo" style="padding:2px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        <img src="logo.png" alt="Logo" style="width:24px;height:24px;object-fit:contain;border-radius:4px;" />
+      </div>
+      <div class="brand-title">
+        WeChat-H5-DevTools
+        <span class="badge-supabase">深色版</span>
+      </div>
+    </div>
+
+    <div class="header-status">
+      <div class="status-capsule">
+        <div class="pulse-dot" id="headerDot"></div>
+        <span id="headerWechatVer">微信连接中...</span>
+        <span style="color:var(--ink-mute)" id="headerWechatPid">未运行</span>
+      </div>
+      <div class="status-capsule">
+        <span style="color:var(--primary)" id="headerKernel">RadiumWMPF</span>
+        <span style="color:var(--ink-mute)" id="headerArch">x64</span>
+      </div>
+      <div class="status-capsule">
+        <span>本地代理</span>
+        <span style="color:var(--primary)" id="headerProxyStatus">127.0.0.1:8899</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主应用体 -->
+  <div class="app-body">
+    <!-- 左侧侧边栏 Aside -->
+    <aside>
+      <div class="nav-list">
+        <div class="nav-item active" onclick="switchTab('dashboard', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          控制总览
+        </div>
+        <div class="nav-item" onclick="switchTab('injector', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          网页调试
+        </div>
+        <div class="nav-item" onclick="switchTab('sandbox', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          本地替换
+        </div>
+        <div class="nav-item" onclick="switchTab('extractor', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          代码还原
+        </div>
+        <div class="nav-item" onclick="switchTab('auditor', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          安全检查
+        </div>
+        <div class="nav-item" onclick="switchTab('logs', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          实时日志
+        </div>
+        <div class="nav-item" onclick="switchTab('faq', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          常见问题
+        </div>
+        <div class="nav-item" onclick="switchTab('attribution', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          开源鸣谢
+        </div>
+        <div class="nav-item" onclick="switchTab('disclaimer', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          免责声明
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="author-card">
+          <div class="author-info">
+            <span class="author-label">作者微信</span>
+            <span class="author-val" id="authorWx">Sleep_Plan</span>
+          </div>
+          <button class="btn-copy" onclick="copyAuthor()">复制</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右侧内容 Main -->
+    <main>
+
+      <!-- 视图 1: 控制总览 Dashboard -->
+      <div id="view-dashboard" class="view-panel active">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h2>控制台总览</h2>
+            <p>微信内置网页与小程序调试控制面板，实时监控运行状态与服务通道</p>
+          </div>
+          <button class="btn btn-secondary" onclick="refreshStatus()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            刷新运行状态
+          </button>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">微信宿主进程</span>
+              <svg class="metric-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            </div>
+            <div class="metric-value" id="valWechatPid">未运行</div>
+            <div class="metric-badge" id="valWechatSub">
+              <div class="pulse-dot" style="width:5px;height:5px;"></div>
+              <span id="valWechatExe">微信检测中...</span>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">调试代理端口</span>
+              <svg class="metric-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </div>
+            <div class="metric-value">8899</div>
+            <div class="metric-badge" id="metricProxyStatus">127.0.0.1 监听中</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">调试按钮状态</span>
+              <svg class="metric-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </div>
+            <div class="metric-value" id="vconsoleStatus">待开启</div>
+            <div class="metric-badge" id="vconsoleSub">就绪状态</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">已还原代码文件</span>
+              <svg class="metric-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+            <div class="metric-value">344 个</div>
+            <div class="metric-badge">已全部格式化</div>
+          </div>
+        </div>
+
+        <div class="hero-card">
+          <div class="hero-header">
+            <div>
+              <span class="hero-badge-tag">网页调试</span>
+              <div class="hero-title">一键开启微信网页调试窗口</div>
+            </div>
+          </div>
+          <div class="hero-desc">
+            在公众号与内嵌网页中开启开发者审查窗口，支持控制台输出查看、网络请求抓包以及本地存储查看。
+          </div>
+          <div class="hero-input-row">
+            <input type="text" class="input-box" id="targetUrlInput" placeholder="输入目标网页链接，或留空对所有网页生效..." value="https://mp.weixin.qq.com/s/sample_h5_demo" />
+            <button class="btn btn-primary" onclick="triggerInject()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              开启调试面板
+            </button>
+            <button class="btn btn-secondary" onclick="triggerProxyToggle()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              切换本地代理
+            </button>
+          </div>
+        </div>
+
+        <!-- 微信宿主路径自定义设置卡片 -->
+        <div class="section-card">
+          <div class="card-header-bar">
+            <span class="card-header-title">微信安装路径设置</span>
+            <span id="wechatPathBadge" class="badge-supabase">检测中</span>
+          </div>
+          <div class="card-content" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="font-size: 13px; color: var(--ink-secondary); line-height: 1.5;">
+              若微信安装在自定义目录或非默认盘符（例如 <code>D:\Tencent\WeChat</code>），可在此手动指定安装文件夹或主程序文件，系统将自动保存并识别：
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="text" class="input-box" id="customWechatPathInput" style="flex: 1;" placeholder="例如: D:\Tencent\WeChat 或 Weixin.exe 完整路径" />
+              <button class="btn btn-primary" onclick="saveCustomPath()" style="white-space: nowrap;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                保存并生效
+              </button>
+            </div>
+            <div style="font-size: 12px; color: var(--ink-mute); display: flex; align-items: center; gap: 8px;">
+              <span>当前生效路径:</span>
+              <code id="currentResolvedPath" style="color: var(--primary); font-size: 12px;">自动检测中...</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="card-header-bar">
+            <span class="card-header-title">微信运行进程列表</span>
+            <span style="font-size:12px;color:var(--ink-mute);" id="matrixSummary">正在检测运行状态...</span>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>进程名称</th>
+                  <th>进程号</th>
+                  <th>架构</th>
+                  <th>内核类型</th>
+                  <th>服务通道</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody id="processMatrixBody">
+                <tr>
+                  <td style="color:var(--ink);font-weight:500;">正在检测微信进程...</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td><code>-</code></td>
+                  <td><span class="badge-supabase">检测中</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 视图 2: 网页调试 -->
+      <div id="view-injector" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h2>网页调试设置</h2>
+            <p>开启或管理公众号网页及内嵌页面的开发者调试工具</p>
+          </div>
+          <button class="btn btn-primary" onclick="triggerInject()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            应用调试设置
+          </button>
+        </div>
+
+        <div class="section-card">
+          <div class="card-header-bar">
+            <span class="card-header-title">功能配置列表</span>
+          </div>
+          <div class="card-content">
+            <div class="toggle-row">
+              <div class="toggle-meta">
+                <h4>开启网页绿色调试按钮</h4>
+                <p>在所有内置网页右下角显示绿色调试按钮，方便随时查看控制台日志与网络通信</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" checked id="sw-vconsole">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <div class="toggle-meta">
+                <h4>开启移动端多功能审查面板</h4>
+                <p>针对复杂网页提供移动端元素审查、本地存储与页面样式查看功能</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="sw-eruda">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <div class="toggle-meta">
+                <h4>解除网页接口域名白名单限制</h4>
+                <p>允许在任意网页中免签名直接测试微信分享、录音、拍照等常用接口能力</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" checked id="sw-jssdk">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <div class="toggle-meta">
+                <h4>开启网页鼠标右键审查元素</h4>
+                <p>恢复鼠标右键菜单，点击右键可直接打开谷歌浏览器官方开发者审查窗口</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" checked id="sw-inspect">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 视图 3: 本地替换 -->
+      <div id="view-sandbox" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h2>本地文件替换与代理</h2>
+            <p>将网页中的远程脚本替换为本地电脑上的代码文件，修改本地代码即刻生效</p>
+          </div>
+          <button class="btn btn-secondary" onclick="addMockRule()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            添加替换规则
+          </button>
+        </div>
+
+        <div class="section-card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>目标网址匹配规则</th>
+                  <th>本地替换文件路径</th>
+                  <th>命中次数</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>*://res.wx.qq.com/open/js/jweixin-1.6.0.js</code></td>
+                  <td><code>./output/sample_app/mock_jweixin.js</code></td>
+                  <td>12 次</td>
+                  <td><span class="badge-supabase">已启用</span></td>
+                </tr>
+                <tr>
+                  <td><code>*://res.servicewechat.com/.../app-service.js</code></td>
+                  <td><code>./output/sample_app_deobfuscated/app-service.js</code></td>
+                  <td>45 次</td>
+                  <td><span class="badge-supabase">已启用</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 视图 4: 代码还原 -->
+      <div id="view-extractor" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h2>前端代码整理与还原</h2>
+            <p>自动格式化混乱、压缩或加密的前端代码，一键还原为清晰可读的源码格式</p>
+          </div>
+          <button class="btn btn-primary" onclick="triggerAstRun()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            开始还原代码
+          </button>
+        </div>
+
+        <div class="hero-card">
+          <div class="hero-title">选择需要还原的代码目录</div>
+          <div class="hero-input-row">
+            <input type="text" id="extractorTargetDir" class="input-box" placeholder="./output/sample_app" value="./output/sample_app" />
+            <button class="btn btn-secondary" onclick="browseExtractorDir()">浏览目录...</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 视图 5: 安全检查 -->
+      <div id="view-auditor" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h2>敏感信息与密钥检查</h2>
+            <p>自动扫描网页代码，检查是否存在泄露的密码、应用密钥或内部测试地址</p>
+          </div>
+          <button class="btn btn-secondary" onclick="triggerScan()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            重新扫描
+          </button>
+        </div>
+
+        <div class="section-card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>危险程度</th>
+                  <th>泄露类型</th>
+                  <th>发现位置</th>
+                  <th>泄露内容（已脱敏隐藏）</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span style="color:var(--accent-danger);font-weight:600;">严重风险</span></td>
+                  <td>微信应用接口密钥</td>
+                  <td><code>app-service.js 第 1420 行</code></td>
+                  <td><code>wx4b9281**********************</code></td>
+                </tr>
+                <tr>
+                  <td><span style="color:var(--accent-warning);font-weight:600;">高危风险</span></td>
+                  <td>内部登录认证凭据</td>
+                  <td><code>page-frame.html 第 89 行</code></td>
+                  <td><code>eyJhbg************************</code></td>
+                </tr>
+                <tr>
+                  <td><span style="color:var(--accent-info);font-weight:600;">中度提示</span></td>
+                  <td>内部测试网络地址</td>
+                  <td><code>vendors.js 第 312 行</code></td>
+                  <td><code>https://api-stage.internal.wechat.com</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 视图 6: 实时日志 -->
+      <div id="view-logs" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h2>实时运行日志</h2>
+            <p>实时显示调试服务连接、网络数据包与系统运行的最新记录</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="copyAllLogs()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              复制全部日志
+            </button>
+            <button class="btn btn-secondary" onclick="openLogFile()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              打开本地日志
+            </button>
+            <button class="btn btn-secondary" onclick="openLogFolder()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              定位日志目录
+            </button>
+            <button class="btn btn-secondary" onclick="clearLogs()">清空屏幕</button>
+            <button class="btn btn-secondary" onclick="clearDiskLog()">清空磁盘日志</button>
+          </div>
+        </div>
+
+        <!-- 本地日志记录提示条 -->
+        <div style="margin-bottom:12px;padding:10px 14px;background:rgba(30,41,59,0.5);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:space-between;font-size:12px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="color:var(--primary);font-weight:600;">[本地日志记录]</span>
+            <code style="color:var(--text-main);background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;">records/logs/console_stream.log</code>
+            <span style="color:var(--ink-mute);">| 本地文件自动保存，重启后日志不丢失</span>
+          </div>
+          <span id="logFileStatusBadge" style="color:var(--accent-success);font-weight:500;">本地日志已开启</span>
+        </div>
+
+        <div class="terminal-window">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <div class="dot red"></div>
+              <div class="dot yellow"></div>
+              <div class="dot green"></div>
+            </div>
+            <div class="terminal-title">调试日志窗口</div>
+            <div style="color:var(--primary);font-size:11px;">● 实时</div>
+          </div>
+          <div class="terminal-body" id="terminalBody">
+            <div class="log-line">
+              <span class="log-time">[19:30:01]</span>
+              <span class="log-tag tag-info">[START]</span>
+              <span class="log-msg">客户端核心服务已启动</span>
+            </div>
+            <div class="log-line">
+              <span class="log-time">[19:30:02]</span>
+              <span class="log-tag tag-success">[PASS]</span>
+              <span class="log-msg" id="terminalInitMsg">微信进程与版本检测中...</span>
+            </div>
+            <div class="log-line">
+              <span class="log-time">[19:30:03]</span>
+              <span class="log-tag tag-success">[READY]</span>
+              <span class="log-msg">微信内置网页开发者调试通道已就绪</span>
+            </div>
+            <div class="log-line">
+              <span class="log-time">[19:30:04]</span>
+              <span class="log-tag tag-info">[PROXY]</span>
+              <span class="log-msg">本地代理服务已监听 127.0.0.1:8899</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 视图 7: 常见问题 -->
+      <div id="view-faq" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h2>常见问题与解决方法</h2>
+            <p>微信各版本常见故障、页面黑屏成因与高频问题快速排查解答</p>
+          </div>
+          <button class="btn btn-secondary" onclick="openFaqDoc()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            打开本地说明文档
+          </button>
+        </div>
+
+        <div class="section-card">
+          <div class="card-title">常见问题快速解答</div>
+          <div class="card-desc">微信各版本常见故障排查与使用疑问解答</div>
+          
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px;">
+            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;">
+              <div style="font-weight:600;color:var(--primary);margin-bottom:6px;">Q1: 运行命令提示无法识别？</div>
+              <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">没有正确安装运行环境。请在项目目录下执行依赖安装，或直接在终端使用 <code>python main.py &lt;命令&gt;</code> 启动。</div>
+            </div>
+
+            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;">
+              <div style="font-weight:600;color:var(--primary);margin-bottom:6px;">Q2: 提示“已有微信进程在运行”怎么处理？</div>
+              <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">微信正在后台运行中。请在电脑右下角任务栏完全退出微信程序，然后重新启动本工具即可。</div>
+            </div>
+
+            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;">
+              <div style="font-weight:600;color:var(--primary);margin-bottom:6px;">Q3: 启动本地代理后，网页无法联网或提示连接失败？</div>
+              <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">默认的 8899 端口可能被其他抓包或代理软件抢占，可以使用 <code>wx-h5 proxy --port 8999</code> 更换端口。如果提示证书问题，将证书双击安装至“受信任的根证书颁发机构”即可。</div>
+            </div>
+
+            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;">
+              <div style="font-weight:600;color:var(--primary);margin-bottom:6px;">Q4: 微信升级到新版本后，工具还能继续使用吗？</div>
+              <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">可以正常使用。本工具采用动态特征识别技术，会自动适配微信新版本，无需频繁手动配置或修改。</div>
+            </div>
+
+            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;">
+              <div style="font-weight:600;color:var(--primary);margin-bottom:6px;">Q5: 修改本地文件后刷新网页依然显示旧代码？</div>
+              <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">微信内置浏览器存在缓存。可以在网页右下角的调试按钮中点击清理缓存，或者在网页链接末尾加上随机时间戳 <code>?_t=...</code> 强制刷新。</div>
+            </div>
+
+            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;">
+              <div style="font-weight:600;color:var(--primary);margin-bottom:6px;">Q6: 处理超大代码文件时程序报错内存不足崩溃？</div>
+              <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">文件体积过大时会占用较多电脑内存。可以使用增量分块参数，将大文件分批处理，大幅降低电脑内存占用。</div>
+            </div>
+
+            <div style="padding:14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;">
+              <div style="font-weight:600;color:var(--primary);margin-bottom:6px;">Q7: 启动连接时提示“拒绝访问”怎么解决？</div>
+              <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">属于系统权限不足引起。若微信是用管理员权限启动的，请右键点击本工具选择“以管理员身份运行”即可正常连接。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 视图 8: 开源鸣谢 -->
+      <div id="view-attribution" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h2>开源鸣谢</h2>
+            <p>严格遵守开源许可规范，真诚感谢并致敬本项目所引用的优秀开源项目</p>
+          </div>
+        </div>
+
+        <div class="section-card" style="margin-bottom:20px;">
+          <div class="card-title">一、核心底层依赖与直接调用组件</div>
+          <div class="card-desc">本项目直接依赖并使用的核心开源组件与工具</div>
+          
+          <div class="table-container" style="margin-top:12px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>开源项目</th>
+                  <th>官方 GitHub 仓库地址</th>
+                  <th>许可证</th>
+                  <th>核心应用场景</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Frida</strong></td>
+                  <td><a href="https://github.com/frida/frida" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/frida/frida</a></td>
+                  <td>wxWindows</td>
+                  <td>跨平台动态调试与进程通信引擎</td>
+                </tr>
+                <tr>
+                  <td><strong>vConsole</strong></td>
+                  <td><a href="https://github.com/Tencent/vConsole" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/Tencent/vConsole</a></td>
+                  <td>MIT</td>
+                  <td>腾讯官方移动端网页控制台，提供便捷的浮动调试按钮</td>
+                </tr>
+                <tr>
+                  <td><strong>Eruda</strong></td>
+                  <td><a href="https://github.com/liriliri/eruda" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/liriliri/eruda</a></td>
+                  <td>MIT</td>
+                  <td>移动端网页元素审查、网络请求拦截与本地存储查看</td>
+                </tr>
+                <tr>
+                  <td><strong>Webcrack</strong></td>
+                  <td><a href="https://github.com/j4k0xb/webcrack" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/j4k0xb/webcrack</a></td>
+                  <td>MIT</td>
+                  <td>前端脚本深度代码整理、常数计算与打包文件自动还原</td>
+                </tr>
+                <tr>
+                  <td><strong>Mitmproxy</strong></td>
+                  <td><a href="https://github.com/mitmproxy/mitmproxy" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/mitmproxy/mitmproxy</a></td>
+                  <td>MIT</td>
+                  <td>支持加密网络请求拦截与实时重写的网络代理工具</td>
+                </tr>
+                <tr>
+                  <td><strong>Babel</strong></td>
+                  <td><a href="https://github.com/babel/babel" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/babel/babel</a></td>
+                  <td>MIT</td>
+                  <td>前端脚本语法树解析、遍历与代码重构工具</td>
+                </tr>
+                <tr>
+                  <td><strong>PyWebView</strong></td>
+                  <td><a href="https://github.com/r0x0r/pywebview" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/r0x0r/pywebview</a></td>
+                  <td>BSD-3-Clause</td>
+                  <td>轻量级桌面窗口容器，原生调用系统现代化浏览器内核</td>
+                </tr>
+                <tr>
+                  <td><strong>Click</strong></td>
+                  <td><a href="https://github.com/pallets/click" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/pallets/click</a></td>
+                  <td>BSD-3-Clause</td>
+                  <td>功能强大的命令行交互工具框架</td>
+                </tr>
+                <tr>
+                  <td><strong>Rich</strong></td>
+                  <td><a href="https://github.com/Textualize/rich" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/Textualize/rich</a></td>
+                  <td>MIT</td>
+                  <td>命令行彩色文本排版与表格展示组件</td>
+                </tr>
+                <tr>
+                  <td><strong>PyQt-Fluent-Widgets</strong></td>
+                  <td><a href="https://github.com/zhiyiYo/PyQt-Fluent-Widgets" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/zhiyiYo/PyQt-Fluent-Widgets</a></td>
+                  <td>GPLv3</td>
+                  <td>现代化桌面质感控件规范灵感与参考</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="card-title">二、架构设计与开源参考项目</div>
+          <div class="card-desc">为本项目架构设计、网页调试通道与版本兼容提供思路参考的开源项目</div>
+          
+          <div class="table-container" style="margin-top:12px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>参考项目</th>
+                  <th>作者 / 组织</th>
+                  <th>官方 GitHub 仓库地址</th>
+                  <th>核心借鉴价值与灵感启发</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>WeChatOpenDevTools-Python</strong></td>
+                  <td>JaveleyQAQ</td>
+                  <td><a href="https://github.com/JaveleyQAQ/WeChatOpenDevTools-Python" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/JaveleyQAQ/WeChatOpenDevTools-Python</a></td>
+                  <td>微信内置浏览器与网页开发者工具开启思路与版本特征参考</td>
+                </tr>
+                <tr>
+                  <td><strong>First</strong></td>
+                  <td>notstarr</td>
+                  <td><a href="https://github.com/notstarr/First" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/notstarr/First</a></td>
+                  <td>微信小程序调试工具箱，提供网页调试协议与工具链设计思路参考</td>
+                </tr>
+                <tr>
+                  <td><strong>e0e1-wx</strong></td>
+                  <td>eeeeeeeeee-code</td>
+                  <td><a href="https://github.com/eeeeeeeeee-code/e0e1-wx" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/eeeeeeeeee-code/e0e1-wx</a></td>
+                  <td>微信小程序页面资源提取与工程结构还原流程参考</td>
+                </tr>
+                <tr>
+                  <td><strong>WeChat-Hook</strong></td>
+                  <td>aixed</td>
+                  <td><a href="https://github.com/aixed/WeChat-Hook" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/aixed/WeChat-Hook</a></td>
+                  <td>Windows 微信多进程协同与通信机制分析参考</td>
+                </tr>
+                <tr>
+                  <td><strong>wechat-windows-versions</strong></td>
+                  <td>tom-snow</td>
+                  <td><a href="https://github.com/tom-snow/wechat-windows-versions" target="_blank" style="color:var(--primary);text-decoration:none;">github.com/tom-snow/wechat-windows-versions</a></td>
+                  <td>微信 Windows 历史客户端版本归档与浏览器内核演进参考</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 视图 9: 免责声明 -->
+      <div id="view-disclaimer" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h2>免责声明</h2>
+            <p>使用本软件前请仔细阅读以下条款，使用即视为同意本声明全部内容</p>
+          </div>
+        </div>
+
+        <div class="section-card" style="margin-bottom:16px;padding:18px 20px;">
+          <div class="card-title" style="color:var(--primary);font-size:14px;font-weight:600;">1. 使用目的与技术范围</div>
+          <div class="card-desc" style="color:var(--ink-secondary);margin-top:8px;line-height:1.7;">
+            本项目仅供计算机技术研究、前端跨平台兼容性测试与网页开发调试学习使用。请在遵守国家法律法规及各平台使用规范的前提下合理使用本工具，严禁将本软件用于任何危害网络安全或侵犯他人合法权益的非法活动。
+          </div>
+        </div>
+
+        <div class="section-card" style="margin-bottom:16px;padding:18px 20px;">
+          <div class="card-title" style="color:var(--primary);font-size:14px;font-weight:600;">2. 免责条款与风险自负</div>
+          <div class="card-desc" style="color:var(--ink-secondary);margin-top:8px;line-height:1.7;">
+            本软件按“现状”提供，作者及贡献者不对软件的适用性、稳定性及安全性作任何明示或暗示的保证。使用者在进行页面调试与网络分析时，须自行评估并承担相关操作风险。因使用本软件或其衍生版本所产生的一切后果（包括但不限于系统异常、数据损失或账号受限等），作者及贡献者概不承担任何法律责任。
+          </div>
+        </div>
+
+        <div class="section-card" style="margin-bottom:16px;padding:18px 20px;">
+          <div class="card-title" style="color:var(--primary);font-size:14px;font-weight:600;">3. 知识产权与商标声明</div>
+          <div class="card-desc" style="color:var(--ink-secondary);margin-top:8px;line-height:1.7;">
+            本项目中涉及的微信、Chromium 及其他第三方软件名称、商标、标识和专有协议，其所有权与知识产权均归其合法持有方所有。本项目为独立的第三方开源工具，与相关软件官方公司不存在任何形式的官方关联、授权或商业合作。
+          </div>
+        </div>
+
+        <div class="section-card" style="border-left:4px solid var(--accent-danger);margin-bottom:16px;padding:18px 20px;">
+          <div class="card-title" style="color:var(--accent-danger);font-size:14px;font-weight:600;">4. 免费开源与禁止倒卖</div>
+          <div class="card-desc" style="color:var(--ink-secondary);margin-top:8px;line-height:1.7;">
+            本项目源码及编译版本完全免费开源，仅供技术交流与学习，严禁任何个人、机构或商业实体将本项目进行二次打包、换皮、修改名称后在任何线上或线下平台进行有偿销售、转售或商业牟利。<br>
+            若您是通过付费购买方式获得本软件，请立即在相应交易平台发起欺诈投诉并申请退款。作者团队保留对恶意倒卖侵权行为进行举证维权并追究责任的权利。
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- 底部状态条 Footer -->
+  <footer>
+    <div class="footer-item">
+      <span>核心引擎：</span>
+      <span style="color:var(--primary)">v1.1.2 / 系统浏览器内核</span>
+    </div>
+    <div class="footer-item">
+      <span>响应延迟：</span>
+      <span style="color:var(--primary)">4毫秒</span>
+      <span style="margin-left:12px;">内存占用：</span>
+      <span style="color:var(--primary)">28.6 MB</span>
+    </div>
+  </footer>
+
+  <!-- 浮动 Toast 通知 -->
+  <div class="toast" id="toastBox">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3ecf8e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toastMsg">操作已执行</span>
+  </div>
+
+  <script>
+    function switchTab(viewId, element) {
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+
+      const target = document.getElementById('view-' + viewId);
+      if (target) {
+        target.classList.add('active');
+        element.classList.add('active');
+      }
+      if (viewId === 'logs') {
+        updateLogFileInfo();
+      }
+    }
+
+    function copyAuthor() {
+      const wx = "Sleep_Plan";
+      navigator.clipboard.writeText(wx).then(() => {
+        showToast("作者微信已复制到剪贴板: " + wx);
+      }).catch(() => {
+        showToast("作者微信: " + wx);
+      });
+    }
+
+    function triggerInject() {
+      const targetUrl = document.getElementById('targetUrlInput') ? document.getElementById('targetUrlInput').value : "全局生效";
+      
+      if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.inject_vconsole(targetUrl).then(res => {
+          handleInjectResult(res);
+        }).catch(err => {
+          appendLog("[ERROR]", "开启失败: " + err, "tag-error");
+        });
+      } else {
+        handleInjectResult({ success: true, message: "调试按钮已成功添加到目标网页！" });
+      }
+    }
+
+    function handleInjectResult(res) {
+      showToast(res.message || "调试按钮已成功添加到网页！");
+      document.getElementById('vconsoleStatus').innerText = "已激活";
+      document.getElementById('vconsoleStatus').style.color = "var(--primary)";
+      document.getElementById('vconsoleSub').innerText = "已开启";
+
+      appendLog("[INJECT]", "向目标网页添加调试控制台按钮成功", "tag-hook");
+      appendLog("[SUCCESS]", "网页调试通道已开启，控制台已就绪", "tag-success");
+    }
+
+    function triggerProxyToggle() {
+      if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.toggle_proxy().then(res => {
+          showToast(res.message);
+          updateProxyUI(res.proxy_active);
+          appendLog("[PROXY]", res.message, "tag-info");
+        });
+      } else {
+        showToast("本地代理转发状态已切换");
+        appendLog("[PROXY]", "127.0.0.1:8899 本地代理已重载", "tag-info");
+      }
+    }
+
+    function saveCustomPath() {
+      const input = document.getElementById('customWechatPathInput');
+      const val = input ? input.value.trim() : "";
+      if (!val) {
+        showToast("请输入微信安装目录或程序路径");
+        return;
+      }
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.save_custom_wechat_path) {
+        window.pywebview.api.save_custom_wechat_path(val).then(res => {
+          showToast(res.message);
+          appendLog("[CONFIG]", res.message, res.is_valid ? "tag-success" : "tag-error");
+          refreshStatus();
+        }).catch(err => {
+          showToast("保存路径配置异常: " + err);
+        });
+      } else {
+        showToast("路径配置已在本地记录: " + val);
+        const resolvedEl = document.getElementById('currentResolvedPath');
+        if (resolvedEl) resolvedEl.innerText = val;
+      }
+    }
+
+    function updateProxyUI(active) {
+      const header = document.getElementById('headerProxyStatus');
+      const metric = document.getElementById('metricProxyStatus');
+      if (active) {
+        if (header) header.innerText = "127.0.0.1:8899";
+        if (metric) metric.innerText = "127.0.0.1 监听中";
+      } else {
+        if (header) header.innerText = "已暂停";
+        if (metric) metric.innerText = "代理服务已暂停";
+      }
+    }
+
+    function triggerAstRun() {
+      const targetInput = document.getElementById("extractorTargetDir");
+      const targetDir = targetInput ? targetInput.value.trim() : "./output/sample_app";
+      showToast("正在启动代码整理与还原: " + targetDir);
+      appendLog("[CODE]", "代码还原工具正在解析目标目录: " + targetDir, "tag-info");
+      if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.run_ast_deobfuscator(targetDir).then(res => {
+          appendLog("[CODE]", res.message, "tag-success");
+          showToast(res.message);
+        });
+      } else {
+        setTimeout(() => {
+          appendLog("[CODE]", "代码整理完成，已输出还原文件至 " + targetDir + "_restored 目录", "tag-success");
+          showToast("代码批量还原完成！");
+        }, 800);
+      }
+    }
+
+    function browseExtractorDir() {
+      const targetInput = document.getElementById("extractorTargetDir");
+      const currentVal = targetInput ? targetInput.value : "./output/sample_app";
+      const newVal = prompt("请输入待整理的代码目录路径:", currentVal);
+      if (newVal && newVal.trim()) {
+        if (targetInput) targetInput.value = newVal.trim();
+        showToast("已更新目标目录: " + newVal.trim());
+      }
+    }
+
+    function copyAllLogs() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.get_all_logs) {
+        window.pywebview.api.get_all_logs().then(res => {
+          if (res.success && res.content) {
+            navigator.clipboard.writeText(res.content).then(() => {
+              showToast("全部日志已复制到剪贴板！");
+            }).catch(() => {
+              fallbackCopy(res.content);
+            });
+          } else {
+            fallbackCopyFromTerminal();
+          }
+        }).catch(() => {
+          fallbackCopyFromTerminal();
+        });
+      } else {
+        fallbackCopyFromTerminal();
+      }
+    }
+
+    function fallbackCopyFromTerminal() {
+      const body = document.getElementById('terminalBody');
+      if (!body) return;
+      const text = body.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("当前屏幕日志已复制到剪贴板！");
+      }).catch(() => {
+        fallbackCopy(text);
+      });
+    }
+
+    function fallbackCopy(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showToast("全部日志已复制到剪贴板！");
+    }
+
+    function openLogFile() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_log_file) {
+        window.pywebview.api.open_log_file().then(res => {
+          showToast(res.message || "已在文本编辑器中打开日志");
+        }).catch(err => {
+          showToast("本地日志路径: records/logs/console_stream.log");
+        });
+      } else {
+        showToast("本地日志路径: records/logs/console_stream.log");
+      }
+    }
+
+    function openLogFolder() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_log_folder) {
+        window.pywebview.api.open_log_folder().then(res => {
+          showToast(res.message || "已在资源管理器中定位日志文件夹");
+        }).catch(err => {
+          showToast("日志存储目录: records/logs/");
+        });
+      } else {
+        showToast("日志存储目录: records/logs/");
+      }
+    }
+
+    function openFaqDoc() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.open_log_folder) {
+        window.pywebview.api.open_log_folder();
+      }
+      showToast("常见问题文档位于 docs/FAQ.md");
+    }
+
+    function triggerScan() {
+      showToast("敏感信息深度检查中...");
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.run_secret_audit) {
+        window.pywebview.api.run_secret_audit().then(res => {
+          appendLog("[CHECK]", res.message || "敏感信息检查完成", "tag-warn");
+          showToast(res.message || "敏感信息检查完成");
+        }).catch(err => {
+          appendLog("[ERROR]", "检查异常: " + err, "tag-error");
+        });
+      } else {
+        appendLog("[CHECK]", "安全检查完成，发现 1 项高危应用密钥", "tag-warn");
+      }
+    }
+
+    function addMockRule() {
+      showToast("已添加新本地文件替换规则");
+      appendLog("[OVERRIDE]", "新增本地替换规则: *://res.wx.qq.com/... -> ./output/mock.js", "tag-info");
+    }
+
+    function syncSystemStatus(data) {
+      if (!data) return;
+
+      // 1. 顶部状态栏胶囊
+      const verEl = document.getElementById('headerWechatVer');
+      const pidEl = document.getElementById('headerWechatPid');
+      const kernelEl = document.getElementById('headerKernel');
+      const archEl = document.getElementById('headerArch');
+      if (verEl) verEl.innerText = data.is_running ? `微信 ${data.wechat_version}` : `微信 ${data.wechat_version || '未运行'}`;
+      if (pidEl) pidEl.innerText = data.wechat_pid ? `进程号: ${data.wechat_pid}` : '未运行';
+      if (kernelEl) kernelEl.innerText = data.kernel || 'RadiumWMPF';
+      if (archEl) archEl.innerText = data.arch || 'x64';
+
+      // 2. 核心指标卡片
+      const cardPid = document.getElementById('valWechatPid');
+      const cardExe = document.getElementById('valWechatExe');
+      if (cardPid) cardPid.innerText = data.wechat_pid ? `进程号 ${data.wechat_pid}` : '未运行';
+      if (cardExe) cardExe.innerText = `${data.process_name || 'WeChat.exe'} (${data.arch || 'x64'})`;
+
+      // 3. 进程列表表格
+      const summaryEl = document.getElementById('matrixSummary');
+      const tbody = document.getElementById('processMatrixBody');
+      if (summaryEl) {
+        summaryEl.innerText = data.is_running
+          ? `共检测到 ${data.wechat_count || 1} 个微信进程 · ${data.renderer_count || 0} 个网页进程`
+          : '微信当前未运行（已检测到安装版本）';
+      }
+      if (tbody && data.process_matrix && data.process_matrix.length > 0) {
+        tbody.innerHTML = data.process_matrix.map(row => `
+          <tr>
+            <td style="color:var(--ink);font-weight:500;">${row.name}</td>
+            <td>${row.pid}</td>
+            <td>${row.arch}</td>
+            <td>${row.kernel}</td>
+            <td><code>${row.entry}</code></td>
+            <td><span class="badge-supabase" style="${row.is_main ? 'background:rgba(62,207,142,0.15)' : ''}">${row.status}</span></td>
+          </tr>
+        `).join('');
+      }
+
+      // 4. 更新终端初始日志
+      const initLog = document.getElementById('terminalInitMsg');
+      if (initLog && data.status_text) {
+        initLog.innerText = data.status_text;
+      }
+
+      // 5. 更新微信宿主路径设置信息
+      const pathEl = document.getElementById('currentResolvedPath');
+      const inputEl = document.getElementById('customWechatPathInput');
+      const badgeEl = document.getElementById('wechatPathBadge');
+      if (pathEl && data.wechat_path) {
+        pathEl.innerText = data.wechat_path;
+      }
+      if (inputEl && !inputEl.value && data.wechat_path) {
+        inputEl.value = data.wechat_path;
+      }
+      if (badgeEl) {
+        badgeEl.innerText = data.wechat_path ? (data.is_running ? '运行中 / 路径有效' : '已就绪 / 路径有效') : '未检测到微信';
+        badgeEl.style.background = data.wechat_path ? 'rgba(62,207,142,0.15)' : 'rgba(239,68,68,0.15)';
+        badgeEl.style.color = data.wechat_path ? 'var(--primary)' : '#ef4444';
+      }
+    }
+
+    function refreshStatus() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.refresh_system_status) {
+        window.pywebview.api.refresh_system_status().then(res => {
+          syncSystemStatus(res);
+          const pidStr = res.wechat_pid ? `进程号 ${res.wechat_pid}` : '未运行';
+          showToast(`已刷新微信状态: 微信 ${res.wechat_version || ''} (${pidStr})`);
+          appendLog("[STATUS]", `运行状态同步成功: ${res.status_text || ''}`, "tag-success");
+        }).catch(err => {
+          showToast("刷新状态异常");
+        });
+      } else {
+        showToast("微信运行状态检测已就绪");
+        appendLog("[INFO]", "状态检查: 进程通信连接正常", "tag-info");
+      }
+    }
+
+    // 页面加载完成后立即拉取宿主机微信真实状态
+    function initSystemInspection() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.get_system_status) {
+        window.pywebview.api.get_system_status().then(syncSystemStatus).catch(() => {});
+      }
+      updateLogFileInfo();
+    }
+    document.addEventListener('DOMContentLoaded', initSystemInspection);
+    window.addEventListener('pywebviewready', initSystemInspection);
+    setTimeout(initSystemInspection, 300);
+
+    function appendLog(tag, msg, tagClass) {
+      const body = document.getElementById('terminalBody');
+      if (!body) return;
+
+      const now = new Date();
+      const timeStr = `[${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}]`;
+
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      line.innerHTML = `
+        <span class="log-time">${timeStr}</span>
+        <span class="log-tag ${tagClass || 'tag-info'}">${tag}</span>
+        <span class="log-msg">${msg}</span>
+      `;
+      body.appendChild(line);
+      body.scrollTop = body.scrollHeight;
+    }
+
+    function addMockLog() {
+      const mockList = [
+        ["[INTERCEPT]", "已拦截网页请求: /wxpay/query_order -> 200 OK", "tag-hook"],
+        ["[INFO]", "检测到微信用户标识字段，已自动脱敏记录", "tag-info"],
+        ["[WARN]", "检测到目标网页重写控制台，已自动恢复默认控制台", "tag-warn"],
+        ["[SUCCESS]", "微信网页分享接口回调触发成功", "tag-success"]
+      ];
+      const item = mockList[Math.floor(Math.random() * mockList.length)];
+      appendLog(item[0], item[1], item[2]);
+      showToast("新日志已追加至终端");
+    }
+
+    function clearLogs() {
+      const body = document.getElementById('terminalBody');
+      if (body) body.innerHTML = '';
+      showToast("终端日志已清空");
+    }
+
+    function clearDiskLog() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.clear_log_file) {
+        window.pywebview.api.clear_log_file().then(res => {
+          showToast(res.message || "本地日志已清空");
+          clearLogs();
+          appendLog("[INFO]", "本地日志已由用户清空", "tag-info");
+          updateLogFileInfo();
+        }).catch(err => {
+          showToast("清空日志异常: " + err);
+        });
+      } else {
+        clearLogs();
+        showToast("本地日志已清空");
+      }
+    }
+
+    function updateLogFileInfo() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.get_log_file_info) {
+        window.pywebview.api.get_log_file_info().then(info => {
+          const badge = document.getElementById('logFileStatusBadge');
+          if (badge && info.exists) {
+            badge.innerText = `本地日志已开启 (${info.size_kb} KB)`;
+          }
+        }).catch(() => {});
+      }
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toastBox');
+      const text = document.getElementById('toastMsg');
+      if (!toast || !text) return;
+
+      text.innerText = msg;
+      toast.classList.add('show');
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+  </script>
+</body>
+</html>

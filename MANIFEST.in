@@ -1,0 +1,20 @@
+include README.md
+include README_EN.md
+include LICENSE
+include requirements.txt
+include package.json
+include setup.py
+include pyproject.toml
+
+recursive-include wechat_h5_devtools *.py *.js *.proto *.json *.html *.css *.png *.ico
+recursive-include docs/images *.png *.jpg *.svg *.ico
+
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *.so
+global-exclude *.dylib
+global-exclude *.dll
+global-exclude .git*
+global-exclude node_modules
+global-exclude output
+

@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wechat-h5-devtools"
+version = "1.1.2"
+description = "微信公众号与内嵌 H5 满血前端调试与排版审查工具套件"
+authors = [{ name = "markx520", email = "markx520@users.noreply.github.com" }]
+readme = "README.md"
+license = { text = "CC-BY-NC-SA-4.0" }
+requires-python = ">=3.9"
+dependencies = [
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "frida>=16.0.0",
+    "websockets>=13.0.0",
+    "psutil>=5.9.0",
+    "cryptography>=41.0.0",
+    "protobuf>=4.21.0"
+]
+
+[project.optional-dependencies]
+gui = ["pywebview>=4.0.0"]
+
+[project.urls]
+Homepage = "https://github.com/markx520/WeChat-H5-DevTools"
+Repository = "https://github.com/markx520/WeChat-H5-DevTools"
+Issues = "https://github.com/markx520/WeChat-H5-DevTools/issues"
+
+[project.scripts]
+wx-h5 = "wechat_h5_devtools.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["wechat_h5_devtools*"]
+
+[tool.setuptools.package-data]
+wechat_h5_devtools = [
+    "injector/assets/*",
+    "injector/scripts/*.js",
+    "injector/*.proto",
+    "sandbox/_runtime_extension/*",
+    "sandbox/polyfills/*.js",
+    "extractor/*.js",
+    "gui/*",
+    "resources/config/*"
+]
+
