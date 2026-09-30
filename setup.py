@@ -31,7 +31,8 @@ if __name__ == "__main__":
             install_requires=read_requirements(),
             entry_points={
                 "console_scripts": [
-                    "wx-h5 = wechat_h5_devtools.cli:main"
+                    "wx-h5 = wechat_h5_devtools.cli:main",
+                    "wx-h5-mcp = wechat_h5_devtools.mcp.server:run_stdio_server"
                 ]
             },
             package_data={

@@ -85,8 +85,23 @@ class Deobfuscator:
                             else:
                                 code = chunk.strip()
 
-                    target_f = self.input_dir / rel_path
+                    rel_norm = rel_path.lstrip("/\\")
+                    if not Path(rel_norm).suffix:
+                        rel_norm = f"{rel_norm}/entry.js"
+                    target_f = self.input_dir / rel_norm
+
+                    curr = self.input_dir
+                    for part in Path(rel_norm).parent.parts:
+                        curr = curr / part
+                        if curr.is_file():
+                            old_txt = curr.read_text(encoding="utf-8", errors="ignore")
+                            curr.unlink(missing_ok=True)
+                            curr.mkdir(parents=True, exist_ok=True)
+                            (curr / "entry.js").write_text(old_txt, encoding="utf-8")
+
                     target_f.parent.mkdir(parents=True, exist_ok=True)
+                    if target_f.is_dir():
+                        target_f = target_f / "entry.js"
                     target_f.write_text(code, encoding="utf-8")
                     total_unpacked += 1
 

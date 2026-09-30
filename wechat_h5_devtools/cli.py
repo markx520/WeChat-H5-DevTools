@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import json
 import click
 from pathlib import Path
 from typing import Optional
@@ -19,7 +20,20 @@ from .injector.kernel_cdp import run_cdp_engine, DEFAULT_DEBUG_PORT, DEFAULT_CDP
 @click.version_option(version="1.1.2", prog_name="WeChat-H5-DevTools", message="%(prog)s v%(version)s")
 @click.pass_context
 def cli(ctx):
-    """WeChat-H5-DevTools: 微信公众号与内置 H5 满血调试与逆向工程套件"""
+    """WeChat-H5-DevTools: 微信网页开发与调试工具箱"""
+    # 商业版权与 U验证 授权硬门禁保护 (避免被他人随意扩散导致封号)
+    if ctx.invoked_subcommand and ctx.invoked_subcommand not in ["gui"]:
+        from .auth import auth_mgr
+        if not auth_mgr.is_authorized():
+            udid = auth_mgr.get_hardware_udid()
+            click.echo("=" * 60)
+            click.echo(" [未授权拦截] 当前电脑尚未完成 U验证 授权激活！")
+            click.echo(" 为避免本工具被泛滥传播导致微信风控封号，必须先激活后使用。")
+            click.echo(" 请先双击打开桌面客户端完成卡密激活或账号登录。")
+            click.echo(f" 本机专属机器码: {udid}")
+            click.echo("=" * 60)
+            sys.exit(1)
+
     if ctx.invoked_subcommand is None:
         print_banner()
         click.echo(ctx.get_help())
@@ -49,10 +63,8 @@ def cli(ctx):
                 pass
 
 @cli.command(name="doctor", help="诊断本地微信、浏览器与调试依赖环境")
-def doctor_cmd():
-    print_banner()
-    log_step("正在诊断本地开发与调试环境...")
-
+@click.option("--json", "as_json", is_flag=True, default=False, help="以纯 JSON 格式输出诊断数据")
+def doctor_cmd(as_json):
     runtime_status = WeChatFinder.get_runtime_status()
     wechat_path = runtime_status.get("exe_path") or str(WeChatFinder.get_wechat_path() or "")
     wechat_ver = runtime_status.get("wechat_version") or "4.x"
@@ -65,28 +77,24 @@ def doctor_cmd():
     has_config = ProcessHookManager.load_version_config(kernel_build) is not None
     config_note = f"[green]已适配 (addresses.{kernel_build}.json)[/green]" if has_config else f"[yellow]通用兼容模式 (建议补充 addresses.{kernel_build}.json)[/yellow]"
 
-    if wechat_path:
-        wechat_status = f"[green]v{wechat_ver} (已适配) | {wechat_path}[/green]"
-    else:
-        wechat_status = "[red]未检测到微信主程序[/red]"
-
     edge_launcher = BrowserLauncher("edge")
     edge_path = edge_launcher.find_browser_exe()
-    edge_status = f"[green]可用: {edge_path}[/green]" if edge_path else "[yellow]未找到[/yellow]"
 
     chrome_launcher = BrowserLauncher("chrome")
     chrome_path = chrome_launcher.find_browser_exe()
-    chrome_status = f"[green]可用: {chrome_path}[/green]" if chrome_path else "[yellow]未找到[/yellow]"
 
     try:
         import frida
         frida_status = f"[green]已安装 (v{frida.__version__})[/green]"
+        frida_ver = frida.__version__
     except Exception:
         frida_status = "[red]未安装 (pip install frida)[/red]"
+        frida_ver = None
 
     import shutil
     import subprocess
     node_exe = shutil.which("node")
+    node_ver = None
     if node_exe:
         try:
             res = subprocess.run([node_exe, "-v"], capture_output=True, text=True, timeout=3)
@@ -103,6 +111,50 @@ def doctor_cmd():
     except Exception:
         gui_status = "[yellow]可选未装 (运行: pip install \"wechat-h5-devtools[gui]\")[/yellow]"
 
+    if as_json:
+        doc_json = {
+            "wechat": {
+                "installed": bool(wechat_path),
+                "is_running": runtime_status.get("is_running", False),
+                "pid": runtime_status.get("wechat_pid"),
+                "version": wechat_ver,
+                "kernel": radium_kernel,
+                "kernel_build": kernel_build,
+                "path": wechat_path,
+                "has_config": has_config
+            },
+            "browsers": {
+                "edge": edge_path,
+                "chrome": chrome_path
+            },
+            "frida": {
+                "installed": frida_ver is not None,
+                "version": frida_ver
+            },
+            "nodejs": {
+                "installed": node_exe is not None,
+                "version": node_ver,
+                "path": node_exe
+            },
+            "python": {
+                "version": sys.version.split()[0],
+                "executable": sys.executable
+            }
+        }
+        click.echo(json.dumps(doc_json, ensure_ascii=False, indent=2))
+        return
+
+    print_banner()
+    log_step("正在诊断本地开发与调试环境...")
+
+    if wechat_path:
+        wechat_status = f"[green]v{wechat_ver} (已适配) | {wechat_path}[/green]"
+    else:
+        wechat_status = "[red]未检测到微信主程序[/red]"
+
+    edge_status = f"[green]可用: {edge_path}[/green]" if edge_path else "[yellow]未找到[/yellow]"
+    chrome_status = f"[green]可用: {chrome_path}[/green]" if chrome_path else "[yellow]未找到[/yellow]"
+
     rows = [
         ["微信主程序 (WeChat/Weixin)", wechat_status],
         ["微信内置渲染内核 (WMPF)", f"[green]{radium_kernel} | {config_note}[/green]"],
@@ -115,6 +167,24 @@ def doctor_cmd():
     ]
 
     print_table("[本地运行环境诊断矩阵]", ["组件名称", "探测状态"], rows)
+
+
+@cli.command(name="status", help="秒级探测宿主机微信运行状态、主程序路径与渲染内核版本")
+@click.option("--json", "as_json", is_flag=True, default=False, help="以纯 JSON 格式输出状态结果")
+def status_cmd(as_json):
+    runtime_status = WeChatFinder.get_runtime_status()
+    if as_json:
+        click.echo(json.dumps(runtime_status, ensure_ascii=False, indent=2))
+    else:
+        print_banner()
+        log_info(f"微信运行状态: {runtime_status.get('status_text', '未知')}")
+        if runtime_status.get("is_running"):
+            log_info(f"  • 进程 PID: {runtime_status.get('wechat_pid')}")
+            log_info(f"  • 客户端版本: {runtime_status.get('wechat_version')}")
+            log_info(f"  • 渲染内核: {runtime_status.get('kernel')}")
+            log_info(f"  • 主程序路径: {runtime_status.get('exe_path')}")
+        else:
+            log_warn("宿主机当前未运行微信主程序 (Weixin.exe / WeChat.exe)。")
 
 
 @cli.command(name="hook", help="启动微信并精准拦截注入内置浏览器 CDP 调试端口与 DevTools 通道")
@@ -300,31 +370,97 @@ def restore_cmd(target_dir, output):
 
 @cli.command(name="scan", help="静态审计已导出的前端项目，提取全量 API 路由与密码学加密特征")
 @click.argument("target_dir")
+@click.option("--json", "as_json", is_flag=True, default=False, help="以纯 JSON 格式输出审计结果")
 @click.option("--export", "-e", default=None, help="导出 Markdown 格式审计报告至指定文件 (如: report.md)")
 @click.option("--all", "-a", "all_dirs", is_flag=True, default=False, help="批量静态审计该总目录下的所有子工程/子版本目录")
-def scan_cmd(target_dir, export, all_dirs):
-    print_banner()
+def scan_cmd(target_dir, as_json, export, all_dirs):
     final_target = Path(target_dir) if Path(target_dir).exists() else _resolve_path(target_dir)
     if not final_target.exists():
-        log_error(f"目标目录不存在: {final_target}")
+        if as_json:
+            click.echo(json.dumps({"error": f"目标目录不存在: {final_target}"}, ensure_ascii=False))
+        else:
+            print_banner()
+            log_error(f"目标目录不存在: {final_target}")
         return
 
     if all_dirs:
         subdirs = [p for p in final_target.iterdir() if p.is_dir()]
+        all_results = {}
         for sub in subdirs:
-            log_step(f"正在静态审计子工程: [cyan]{sub.name}[/cyan]")
+            if not as_json:
+                log_step(f"正在静态审计子工程: [cyan]{sub.name}[/cyan]")
             analyzer = APIAnalyzer(target_dir=str(sub))
             res = analyzer.analyze()
+            all_results[sub.name] = res
             if export:
                 out_name = f"{sub.name}_report.md" if export == "report.md" else f"{sub.name}_{export}"
                 final_export = _resolve_path(out_name)
                 analyzer.export_markdown(res, str(final_export))
+        if as_json:
+            click.echo(json.dumps(all_results, ensure_ascii=False, indent=2))
     else:
         analyzer = APIAnalyzer(target_dir=str(final_target))
         res = analyzer.analyze()
+        if as_json:
+            click.echo(json.dumps(res, ensure_ascii=False, indent=2))
+        else:
+            print_banner()
         if export:
             final_export = _resolve_path(export, "report.md")
             analyzer.export_markdown(res, str(final_export))
+
+
+@cli.command(name="targets", help="列出微信当前已打开并正在渲染的所有公众号文章页面与 H5 目标")
+@click.option("--port", "-p", default=62000, type=int, help="CDP 远程调试服务端口 (默认: 62000)")
+@click.option("--json", "as_json", is_flag=True, default=False, help="以纯 JSON 格式输出目标清单")
+def targets_cmd(port, as_json):
+    import urllib.request
+    url = f"http://127.0.0.1:{port}/json/list"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "WeChat-H5-DevTools-CLI"})
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            targets = json.loads(resp.read().decode("utf-8"))
+        if as_json:
+            click.echo(json.dumps(targets, ensure_ascii=False, indent=2))
+        else:
+            print_banner()
+            log_step(f"已捕获到 {len(targets)} 个活动渲染目标 (CDP 端口: {port}):")
+            rows = []
+            for t in targets:
+                rows.append([t.get("id", ""), t.get("title", "")[:30], t.get("url", "")[:45]])
+            print_table("[当前微信页面渲染目标清单]", ["Target ID", "页面标题", "URL 地址"], rows)
+    except Exception as e:
+        if as_json:
+            click.echo(json.dumps({"error": f"无法连接微信内核 CDP 服务: {e}", "port": port, "targets": []}, ensure_ascii=False))
+        else:
+            print_banner()
+            log_error(f"无法连接微信内核 CDP 服务 (端口: {port}): {e}")
+            log_info("提示: 请先运行 'wx-h5 open' 或 'wx-h5 cdp' 启动微信内核调试网关。")
+
+
+@cli.command(name="eval", help="向指定的微信页面执行 JavaScript 脚本并同步获取返回值")
+@click.argument("target_id")
+@click.argument("script")
+@click.option("--port", "-p", default=62000, type=int, help="CDP 调试端口 (默认: 62000)")
+@click.option("--json", "as_json", is_flag=True, default=False, help="以纯 JSON 格式输出结果")
+def eval_cmd(target_id, script, port, as_json):
+    from .mcp.tools import execute_tool
+    res = execute_tool("wechat_evaluate_script", {"target_id": target_id, "script": script, "cdp_port": port})
+    if as_json:
+        click.echo(json.dumps(res, ensure_ascii=False, indent=2))
+    else:
+        if res.get("isError"):
+            log_error(f"脚本执行失败: {res.get('content', [{}])[0].get('text')}")
+        else:
+            log_info("脚本执行成功，返回值:")
+            click.echo(res.get("content", [{}])[0].get("text"))
+
+
+@cli.command(name="mcp", help="启动原生 Model Context Protocol (MCP) 服务，支持 AI 宿主直连")
+@click.option("--transport", "-t", default="stdio", type=click.Choice(["stdio"]), help="传输协议 (默认: stdio)")
+def mcp_cmd(transport):
+    from .mcp.server import run_stdio_server
+    run_stdio_server()
 
 
 @cli.command(name="gui", help="启动现代化桌面图形控制台")

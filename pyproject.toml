@@ -30,6 +30,7 @@ Issues = "https://github.com/markx520/WeChat-H5-DevTools/issues"
 
 [project.scripts]
 wx-h5 = "wechat_h5_devtools.cli:main"
+wx-h5-mcp = "wechat_h5_devtools.mcp.server:run_stdio_server"
 
 [tool.setuptools.packages.find]
 where = ["."]

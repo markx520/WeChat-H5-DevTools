@@ -216,6 +216,124 @@
       opacity: 0; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); z-index: 1000;
     }
     .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* U验证 授权登录激活模态弹窗 (标准4+1翡翠暗黑全功能架构) */
+    .auth-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999; opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .auth-overlay.active {
+      opacity: 1; pointer-events: auto;
+    }
+    .auth-card {
+      width: 480px; background: #131722; border: 1px solid var(--hairline-hover);
+      border-radius: var(--radius-lg); padding: 26px 24px 20px 24px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.85), 0 0 45px rgba(62,207,142,0.08);
+      display: flex; flex-direction: column; gap: 16px; position: relative;
+    }
+    .auth-header {
+      display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;
+    }
+    .auth-icon-wrap {
+      width: 46px; height: 46px; border-radius: 12px;
+      background: rgba(62,207,142,0.12); border: 1px solid rgba(62,207,142,0.3);
+      display: flex; align-items: center; justify-content: center; color: var(--primary);
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+    .auth-title { font-size: 18px; font-weight: 600; color: var(--ink); }
+    .auth-subtitle { font-size: 12px; color: var(--ink-mute); max-width: 360px; line-height: 1.5; }
+    .auth-tabs {
+      display: flex; background: var(--canvas-code); border: 1px solid var(--hairline);
+      border-radius: var(--radius-sm); padding: 3px; gap: 3px;
+    }
+    .auth-tab-btn {
+      flex: 1; height: 32px; border: none; background: transparent;
+      color: var(--ink-mute); font-size: 12px; font-weight: 500;
+      border-radius: 4px; cursor: pointer; transition: all 0.15s ease;
+    }
+    .auth-tab-btn:hover { color: var(--ink); }
+    .auth-tab-btn.active {
+      background: var(--canvas-surface); color: var(--primary); font-weight: 600;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+    .auth-pane { display: none; flex-direction: column; gap: 12px; }
+    .auth-pane.active { display: flex; }
+    .auth-field { display: flex; flex-direction: column; gap: 5px; }
+    .auth-label { font-size: 12px; color: var(--ink-secondary); font-weight: 500; }
+    .auth-input-wrap {
+      position: relative; display: flex; align-items: center; width: 100%;
+    }
+    .auth-input-wrap .input-box {
+      width: 100%; padding-right: 36px;
+    }
+    .auth-eye-btn {
+      position: absolute; right: 8px; background: transparent; border: none;
+      color: var(--ink-mute); cursor: pointer; padding: 4px; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.15s ease;
+    }
+    .auth-eye-btn:hover { color: var(--primary); }
+    .auth-sub-links {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; margin-top: 2px;
+    }
+    .auth-remember-label {
+      display: inline-flex; align-items: center; gap: 6px; color: var(--ink-secondary);
+      cursor: pointer; user-select: none;
+    }
+    .auth-remember-label input[type="checkbox"] {
+      accent-color: var(--primary); cursor: pointer;
+    }
+    .auth-link-group a {
+      color: var(--primary); text-decoration: none; font-weight: 500; cursor: pointer;
+    }
+    .auth-link-group a:hover { text-decoration: underline; }
+    .auth-hwid-dock {
+      background: var(--canvas-code); border: 1px solid var(--hairline);
+      padding: 9px 12px; border-radius: var(--radius-sm);
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      margin-top: 4px;
+    }
+    .auth-hwid-text-wrap {
+      display: flex; flex-direction: column; gap: 2px; overflow: hidden; min-width: 0;
+    }
+    .auth-hwid-title {
+      font-size: 11px; color: var(--ink-mute); font-weight: 500;
+    }
+    .auth-hwid-val {
+      font-family: var(--font-mono); font-size: 11px; color: var(--primary);
+      font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .auth-status-bar {
+      display: flex; align-items: center; gap: 8px; font-size: 11px;
+      color: var(--ink-mute); padding: 2px 4px; min-height: 20px;
+    }
+    .auth-status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--primary); box-shadow: 0 0 6px var(--primary);
+      flex-shrink: 0;
+    }
+    .auth-status-bar.error .auth-status-dot {
+      background: var(--accent-danger); box-shadow: 0 0 6px var(--accent-danger);
+    }
+    .auth-status-bar.error { color: #fca5a5; }
+    .auth-status-bar.loading .auth-status-dot {
+      background: var(--accent-warning); box-shadow: 0 0 6px var(--accent-warning);
+      animation: pulse 1s infinite;
+    }
+    .auth-status-bar.success .auth-status-dot {
+      background: var(--primary); box-shadow: 0 0 8px var(--primary);
+    }
+    .auth-status-bar.success { color: var(--primary); }
+    .auth-close-btn {
+      position: absolute; top: 14px; right: 14px; background: transparent;
+      border: none; color: var(--ink-mute); cursor: pointer; padding: 4px;
+      border-radius: 4px; display: none;
+    }
+    .auth-close-btn:hover { color: var(--ink); background: var(--canvas-surface); }
   </style>
 </head>
 <body>
@@ -246,6 +364,17 @@
         <span>本地代理</span>
         <span style="color:var(--primary)" id="headerProxyStatus">127.0.0.1:8899</span>
       </div>
+      <div class="status-capsule" id="headerAuthCapsule" style="cursor:pointer;" onclick="openAuthModal('login', true)">
+        <div class="pulse-dot" id="headerAuthDot" style="background:var(--accent-warning);box-shadow:0 0 8px var(--accent-warning);"></div>
+        <span id="headerAuthUser" style="color:var(--ink-secondary);">检查授权中...</span>
+        <span id="headerAuthVip" style="color:var(--primary);font-weight:600;">-</span>
+      </div>
+      <button class="btn btn-secondary" style="height:26px;padding:0 8px;font-size:11px;" onclick="switchTab('disclaimer', document.querySelector('.nav-item:last-child'))">
+        使用协议
+      </button>
+      <button class="btn btn-secondary" id="headerLogoutBtn" style="height:26px;padding:0 8px;font-size:11px;color:var(--accent-danger);border-color:rgba(239,68,68,0.3);display:none;" onclick="triggerLogout()">
+        退出
+      </button>
     </div>
   </header>
 
@@ -273,6 +402,10 @@
         <div class="nav-item" onclick="switchTab('auditor', this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
           安全检查
+        </div>
+        <div class="nav-item" onclick="switchTab('mcp_cli', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+          AI与快捷命令
         </div>
         <div class="nav-item" onclick="switchTab('logs', this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
@@ -923,6 +1056,143 @@
         </div>
       </div>
 
+      <!-- 视图: AI与快捷命令 -->
+      <div id="view-mcp_cli" class="view-panel">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h2>AI 与快捷命令</h2>
+            <p>连上 AI 软件自动查，或者在黑窗口里一键跑命令</p>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-secondary" onclick="loadMcpCliData(true)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              刷新
+            </button>
+            <button class="btn btn-primary" onclick="applyAntigravityConfig()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+              一键连到 Antigravity
+            </button>
+          </div>
+        </div>
+
+        <!-- 顶部指标栏 -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">AI 连接状态</span>
+              <svg class="metric-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <div class="metric-value" id="mcpHostStatus" style="font-size:18px;">已连接</div>
+            <div class="metric-badge" id="mcpHostBadge">
+              <div class="pulse-dot" style="width:5px;height:5px;"></div>
+              <span>聊天窗口直接调用</span>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">连接通道</span>
+              <svg class="metric-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </div>
+            <div class="metric-value" style="font-size:18px;">本机极速</div>
+            <div class="metric-badge" style="color:var(--accent-info)">不用上网零延迟</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">现成功能</span>
+              <svg class="metric-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </div>
+            <div class="metric-value">8 个工具</div>
+            <div class="metric-badge">查微信·看文章·体检</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">快捷命令</span>
+              <svg class="metric-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            </div>
+            <div class="metric-value" style="font-size:18px;">wx-h5</div>
+            <div class="metric-badge">黑窗口敲一行就能用</div>
+          </div>
+        </div>
+
+        <!-- 板块 1: 把工具连到你的 AI 软件 -->
+        <div class="section-card">
+          <div class="card-header-bar">
+            <span class="card-header-title">第一步：把工具连到你的 AI 软件</span>
+            <div style="display:flex;gap:6px;" id="clientTabButtons">
+              <button class="btn btn-secondary active" style="height:28px;padding:0 10px;font-size:11px;" onclick="switchClientConfigTab('antigravity', this)">Antigravity</button>
+              <button class="btn btn-secondary" style="height:28px;padding:0 10px;font-size:11px;" onclick="switchClientConfigTab('cursor', this)">Cursor</button>
+              <button class="btn btn-secondary" style="height:28px;padding:0 10px;font-size:11px;" onclick="switchClientConfigTab('claude', this)">Claude Desktop</button>
+              <button class="btn btn-secondary" style="height:28px;padding:0 10px;font-size:11px;" onclick="switchClientConfigTab('windsurf', this)">Windsurf</button>
+            </div>
+          </div>
+          <div class="card-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--ink-mute);" id="currentConfigDesc">复制下面这段代码，黏贴到 AI 软件的配置里就能用：</span>
+              <button class="btn-copy" onclick="copyCurrentClientConfig()">复制代码</button>
+            </div>
+            <pre id="mcpConfigCodeBlock" style="background:var(--canvas-code);border:1px solid var(--hairline);padding:12px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:12px;color:var(--primary);overflow-x:auto;user-select:text;margin-top:6px;"></pre>
+          </div>
+        </div>
+
+        <!-- 板块 2: 不用配 AI，直接在下面点点看 -->
+        <div class="section-card">
+          <div class="card-header-bar">
+            <span class="card-header-title">第二步：不用配 AI，直接在下面点点看</span>
+            <span style="font-size:11px;color:var(--ink-mute);">点右边【测一下】，下面直接看电脑里的真实数据</span>
+          </div>
+          <div class="card-content">
+            <div id="mcpToolsGrid" style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;"></div>
+            <div style="margin-top:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:12px;color:var(--ink-mute);" id="mcpTestResultTitle">真实测试结果 (点上面按钮立即出结果)：</span>
+                <span style="font-size:11px;font-family:var(--font-mono);color:var(--primary);" id="mcpTestCost">耗时: 0ms</span>
+              </div>
+              <pre id="mcpTestOutput" style="background:var(--canvas-code);border:1px solid var(--hairline);padding:12px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:11px;color:var(--ink-secondary);height:140px;overflow-y:auto;user-select:text;">// 点上面卡片的【测一下】，这里会直接显示电脑返回的真实结果...</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- 板块 3: 直接在终端敲命令 (懒得开界面就用这个) -->
+        <div class="section-card">
+          <div class="card-header-bar">
+            <span class="card-header-title">第三步：直接在终端敲命令 (懒得开界面就用这个)</span>
+            <span style="font-size:11px;color:var(--ink-mute);">在 PowerShell 或 CMD 黑窗口里直接复制跑</span>
+          </div>
+          <div class="card-content">
+            <!-- 步骤 1: 安装 -->
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;font-weight:600;color:var(--ink);">1. 安装命令 (装一次就行)</span>
+                <button class="btn-copy" onclick="copyText(document.getElementById('cliInstallCmdText').innerText)">复制命令</button>
+              </div>
+              <div style="background:var(--canvas-code);border:1px solid var(--hairline);padding:8px 12px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:12px;color:var(--primary);display:flex;justify-content:space-between;align-items:center;user-select:text;">
+                <span id="cliInstallCmdText">pip install wechat-h5-devtools</span>
+                <span style="font-size:11px;color:var(--ink-mute);">装完在任意窗口都能敲 wx-h5</span>
+              </div>
+            </div>
+
+            <!-- 步骤 2: 常用命令 -->
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+              <span style="font-size:13px;font-weight:600;color:var(--ink);">2. 最常用的 5 条命令</span>
+              <div id="cliCommandsContainer" style="display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+
+            <!-- 步骤 3: 进阶纯数据 -->
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+              <span style="font-size:13px;font-weight:600;color:var(--ink);">3. 进阶用法 (给程序调用纯数据)</span>
+              <pre style="background:var(--canvas-code);border:1px solid var(--hairline);padding:10px 12px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:12px;color:var(--ink-secondary);user-select:text;line-height:1.6;"># 拿正在看的文章标题:
+wx-h5 targets --json
+
+# 一键体检并把结果存成文件:
+wx-h5 doctor --json > test_result.json</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -958,6 +1228,9 @@
       }
       if (viewId === 'logs') {
         updateLogFileInfo();
+      }
+      if (viewId === 'mcp_cli') {
+        loadMcpCliData();
       }
     }
 
@@ -1239,8 +1512,9 @@
       }
     }
 
-    // 页面加载完成后立即拉取宿主机微信真实状态
+    // 页面加载完成后立即拉取本机微信真实状态与授权状态
     function initSystemInspection() {
+      initAuth();
       if (window.pywebview && window.pywebview.api && window.pywebview.api.get_system_status) {
         window.pywebview.api.get_system_status().then(syncSystemStatus).catch(() => {});
       }
@@ -1327,6 +1601,842 @@
         toast.classList.remove('show');
       }, 2500);
     }
+
+    // ----------------------------------------------------
+    // 智能体与终端 (MCP & CLI) 交互模块
+    // ----------------------------------------------------
+    let mcpCliCache = null;
+    let currentMcpClient = 'antigravity';
+
+    function copyText(text) {
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("已成功复制到剪贴板");
+      }).catch(() => {
+        showToast("复制成功");
+      });
+    }
+
+    function switchClientConfigTab(clientName, el) {
+      currentMcpClient = clientName;
+      document.querySelectorAll('#clientTabButtons .btn').forEach(b => b.classList.remove('active'));
+      if (el) {
+        el.classList.add('active');
+      } else {
+        const btn = document.querySelector(`#clientTabButtons button:nth-child(${clientName === 'antigravity' ? 1 : clientName === 'cursor' ? 2 : clientName === 'claude' ? 3 : 4})`);
+        if (btn) btn.classList.add('active');
+      }
+
+      const descMap = {
+        'antigravity': 'Antigravity 配置文件代码 (点右上角按钮自动连，也可手动复制)：',
+        'cursor': 'Cursor 配置文件代码 (黏贴到 Cursor 的 MCP 设置里)：',
+        'claude': 'Claude Desktop 配置文件代码 (黏贴到 Claude 的设置里)：',
+        'windsurf': 'Windsurf 配置文件代码 (黏贴到 Windsurf 的设置里)：'
+      };
+      const descEl = document.getElementById('currentConfigDesc');
+      if (descEl) descEl.innerText = descMap[clientName] || '配置文件代码：';
+
+      const codeEl = document.getElementById('mcpConfigCodeBlock');
+      if (codeEl && mcpCliCache && mcpCliCache.configs) {
+        codeEl.innerText = mcpCliCache.configs[clientName] || '// 暂无该软件配置模板';
+      }
+    }
+
+    function copyCurrentClientConfig() {
+      const codeEl = document.getElementById('mcpConfigCodeBlock');
+      if (codeEl && codeEl.innerText) {
+        copyText(codeEl.innerText);
+      }
+    }
+
+    function applyAntigravityConfig() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.apply_antigravity_mcp_config) {
+        window.pywebview.api.apply_antigravity_mcp_config().then(res => {
+          showToast(res.message || "已一键连到 Antigravity");
+          appendLog("[AI]", "已成功写入 Antigravity 全局配置", "tag-success");
+          loadMcpCliData(true);
+        }).catch(err => {
+          showToast("写入配置异常: " + err);
+        });
+      } else {
+        showToast("已一键连到 Antigravity");
+      }
+    }
+
+    function testMcpTool(toolName) {
+      const titleEl = document.getElementById('mcpTestResultTitle');
+      const outputEl = document.getElementById('mcpTestOutput');
+      const costEl = document.getElementById('mcpTestCost');
+
+      if (titleEl) titleEl.innerText = `正在测试: ${toolName}...`;
+      if (outputEl) outputEl.innerText = `正在读取电脑数据，请稍候...`;
+      if (costEl) costEl.innerText = "耗时: 测算中...";
+
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.run_mcp_tool_test) {
+        window.pywebview.api.run_mcp_tool_test(toolName, "{}").then(res => {
+          if (titleEl) titleEl.innerText = `测试完毕: ${toolName} (${res.success ? '成功' : '失败'})`;
+          if (costEl) costEl.innerText = `耗时: ${res.duration_ms}ms`;
+          if (outputEl) outputEl.innerText = res.result_json;
+          appendLog("[AI]", `工具 ${toolName} 测试完成，耗时 ${res.duration_ms}ms`, res.success ? "tag-success" : "tag-error");
+        }).catch(err => {
+          if (titleEl) titleEl.innerText = `测试失败: ${toolName}`;
+          if (outputEl) outputEl.innerText = `[ERROR] 调用异常: ${err}`;
+          if (costEl) costEl.innerText = "耗时: 异常";
+        });
+      } else {
+        setTimeout(() => {
+          if (titleEl) titleEl.innerText = `测试完成: ${toolName}`;
+          if (costEl) costEl.innerText = "耗时: 1.2ms";
+          if (outputEl) outputEl.innerText = JSON.stringify({ status: "success", tool: toolName, note: "真实数据需在客户端中体验" }, null, 2);
+        }, 150);
+      }
+    }
+
+    function loadMcpCliData(isManual = false) {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.get_mcp_cli_data) {
+        window.pywebview.api.get_mcp_cli_data().then(data => {
+          mcpCliCache = data;
+          renderMcpCliView(data);
+          if (isManual) showToast("配置已刷新");
+        }).catch(err => {
+          if (isManual) showToast("获取配置异常");
+        });
+      } else {
+        // 本地纯前端回退默认数据
+        const mockData = {
+          is_antigravity_active: true,
+          install_cmd: "pip install wechat-h5-devtools",
+          configs: {
+            antigravity: '{\n  "mcpServers": {\n    "wechat-devtools": {\n      "command": "python",\n      "args": ["-u", "-m", "wechat_h5_devtools.cli", "mcp"],\n      "cwd": "D:\\\\源码\\\\自写工具\\\\WeChat-H5-DevTools",\n      "env": {"PYTHONIOENCODING": "utf-8"}\n    }\n  }\n}',
+            cursor: '{\n  "mcpServers": {\n    "wechat-devtools": {\n      "command": "python",\n      "args": ["-u", "-m", "wechat_h5_devtools.cli", "mcp"]\n    }\n  }\n}',
+            claude: '{\n  "mcpServers": {\n    "wechat-devtools": {\n      "command": "python",\n      "args": ["-u", "-m", "wechat_h5_devtools.cli", "mcp"]\n    }\n  }\n}',
+            windsurf: '{\n  "mcpServers": {\n    "wechat-devtools": {\n      "command": "python",\n      "args": ["-u", "-m", "wechat_h5_devtools.cli", "mcp"]\n    }\n  }\n}'
+          },
+          tools: [
+            { name: "wechat_get_runtime_status", title: "看微信开没开", description: "一秒查出微信版本号和进程编号" },
+            { name: "wechat_doctor", title: "微信环境体检", description: "检查电脑微信、内核和浏览器配齐没" },
+            { name: "wechat_list_targets", title: "抓当前打开的网页", description: "当前正在看的文章和网页全列出来" },
+            { name: "wechat_inspect_article", title: "弹窗看文章代码", description: "微信打开文章自动弹出调试大窗口" },
+            { name: "wechat_evaluate_script", title: "往网页塞代码运行", description: "远程在微信网页里执行一段 JS 脚本" },
+            { name: "wechat_static_scan", title: "扫网页所有后台接口", description: "把网页里的接口地址全找出来" },
+            { name: "wechat_deobfuscate_code", title: "乱码代码变整齐", description: "把压缩打包成一团的代码自动排好" },
+            { name: "wechat_list_supported_versions", title: "查支持的微信版本", description: "看当前工具已经适配过的微信内核号" }
+          ],
+          cli_commands: [
+            { cmd: "wx-h5 doctor", desc: "给电脑开发环境做个全身体检，看有没有缺东西", tag: "环境体检" },
+            { cmd: "wx-h5 status --json", desc: "查微信在不在运行，一秒拿到版本号", tag: "状态速查" },
+            { cmd: "wx-h5 article --open", desc: "微信里只要点开文章，电脑立马弹出审查大屏", tag: "打开大屏" },
+            { cmd: "wx-h5 targets --json", desc: "把当前微信打开的所有文章网页全列出来", tag: "网页清单" },
+            { cmd: "wx-h5 mcp", desc: "在黑窗口启动服务，给 AI 助手直接连接调用", tag: "连到 AI" }
+          ]
+        };
+        mcpCliCache = mockData;
+        renderMcpCliView(mockData);
+      }
+    }
+
+    function renderMcpCliView(data) {
+      // 1. 渲染状态
+      const statusEl = document.getElementById('mcpHostStatus');
+      const badgeEl = document.getElementById('mcpHostBadge');
+      if (statusEl) {
+        statusEl.innerText = data.is_antigravity_active ? "已连上" : "待连接";
+        statusEl.style.color = data.is_antigravity_active ? "var(--primary)" : "var(--accent-warning)";
+      }
+      if (badgeEl) {
+        badgeEl.querySelector('span').innerText = data.is_antigravity_active ? "Antigravity 已接入" : "点右上角一键连";
+      }
+
+      // 2. 渲染当前客户端配置
+      switchClientConfigTab(currentMcpClient);
+
+      // 3. 渲染 MCP 8 大工具网格 (大白话排版)
+      const toolsGrid = document.getElementById('mcpToolsGrid');
+      if (toolsGrid && data.tools) {
+        toolsGrid.innerHTML = data.tools.map(t => `
+          <div style="background:var(--canvas-subtle);border:1px solid var(--hairline);border-radius:var(--radius-sm);padding:10px 12px;display:flex;justify-content:space-between;align-items:center;transition:border-color 0.15s ease;">
+            <div style="display:flex;flex-direction:column;gap:3px;overflow:hidden;padding-right:8px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:13px;font-weight:600;color:var(--ink);">${t.title || t.name}</span>
+                <span style="font-family:var(--font-mono);font-size:10px;color:var(--ink-mute);background:var(--canvas-code);padding:1px 5px;border-radius:3px;">${t.name}</span>
+              </div>
+              <span style="font-size:11px;color:var(--ink-mute);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;">${t.description}</span>
+            </div>
+            <button class="btn btn-secondary" style="height:26px;padding:0 10px;font-size:11px;flex-shrink:0;border-color:var(--primary);color:var(--primary);" onclick="testMcpTool('${t.name}')">测一下</button>
+          </div>
+        `).join('');
+      }
+
+      // 4. 渲染 CLI 安装命令
+      const installEl = document.getElementById('cliInstallCmdText');
+      if (installEl && data.install_cmd) {
+        installEl.innerText = data.install_cmd;
+      }
+
+      // 5. 渲染 CLI 五大命令
+      const cliBox = document.getElementById('cliCommandsContainer');
+      if (cliBox && data.cli_commands) {
+        cliBox.innerHTML = data.cli_commands.map(c => `
+          <div style="background:var(--canvas-code);border:1px solid var(--hairline);padding:8px 12px;border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--ink);">${c.cmd}</span>
+                <span style="font-size:10px;padding:1px 6px;border-radius:var(--radius-full);background:rgba(62,207,142,0.1);color:var(--primary);border:1px solid rgba(62,207,142,0.25);">${c.tag}</span>
+              </div>
+              <span style="font-size:11px;color:var(--ink-mute);">${c.desc}</span>
+            </div>
+            <button class="btn-copy" onclick="copyText('${c.cmd}')">复制命令</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    // ----------------------------------------------------
+    // U验证 商业授权认证与一机一码管理中枢 (标准4+1全功能大白话版)
+    // ----------------------------------------------------
+    let currentAuthInfo = null;
+
+    function setAuthStatusMsg(msg, statusType = 'normal') {
+      const bar = document.getElementById('authStatusBar');
+      const text = document.getElementById('authStatusText');
+      if (!bar || !text) return;
+      if (!msg) {
+        bar.className = 'auth-status-bar';
+        text.innerText = '准备就绪 · 请输入凭据登录或免费注册账号';
+        return;
+      }
+      bar.className = `auth-status-bar ${statusType}`;
+      text.innerText = msg;
+    }
+
+    function togglePwdVisibility(inputId, btnEl) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      const isPwd = input.type === 'password';
+      input.type = isPwd ? 'text' : 'password';
+      if (btnEl) {
+        btnEl.innerHTML = isPwd
+          ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>'
+          : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+      }
+    }
+
+    function switchAuthTab(tab) {
+      setAuthStatusMsg('');
+      const tabs = ['login', 'register', 'topup', 'modifyPwd'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+        const pane = document.getElementById('authPane' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (btn) btn.classList.toggle('active', t === tab);
+        if (pane) pane.classList.toggle('active', t === tab);
+      });
+
+      // 如果切换到卡密充值，且当前已登录，则自动带入账号并锁定
+      if (tab === 'topup') {
+        const topupAcc = document.getElementById('authTopupAccountInput');
+        const topupPwdWrap = document.getElementById('authTopupPwdWrap');
+        if (currentAuthInfo && currentAuthInfo.is_authorized && currentAuthInfo.account) {
+          if (topupAcc) {
+            topupAcc.value = currentAuthInfo.account;
+            topupAcc.readOnly = true;
+          }
+          if (topupPwdWrap) {
+            topupPwdWrap.style.display = 'none';
+          }
+        } else {
+          if (topupAcc) {
+            topupAcc.readOnly = false;
+          }
+          if (topupPwdWrap) {
+            topupPwdWrap.style.display = 'flex';
+          }
+        }
+      }
+    }
+
+    function openAuthModal(tab = 'login', allowClose = false) {
+      switchAuthTab(tab);
+      const overlay = document.getElementById('authModalOverlay');
+      const closeBtn = document.getElementById('authCloseBtn');
+      if (overlay) overlay.classList.add('active');
+      if (closeBtn) {
+        closeBtn.style.display = (allowClose || (currentAuthInfo && currentAuthInfo.is_authorized)) ? 'block' : 'none';
+      }
+
+      // 如果有记住的账号且输入框为空，自动回填
+      const savedAcc = localStorage.getItem('auth_last_account');
+      const accInput = document.getElementById('authAccountInput');
+      const remCb = document.getElementById('rememberAuthCb');
+      if (savedAcc && accInput && !accInput.value) {
+        accInput.value = savedAcc;
+        if (remCb) remCb.checked = true;
+      }
+    }
+
+    function closeAuthModal() {
+      const overlay = document.getElementById('authModalOverlay');
+      if (overlay) overlay.classList.remove('active');
+      setAuthStatusMsg('');
+    }
+
+    function updateAuthDisplay(info) {
+      if (!info) return;
+      currentAuthInfo = info;
+      const userEl = document.getElementById('headerAuthUser');
+      const vipEl = document.getElementById('headerAuthVip');
+      const dotEl = document.getElementById('headerAuthDot');
+      const logoutBtn = document.getElementById('headerLogoutBtn');
+      const machineCodeEl = document.getElementById('authMachineCodeText');
+
+      if (machineCodeEl && info.udid) {
+        machineCodeEl.innerText = info.udid;
+      }
+
+      if (info.is_authorized) {
+        if (userEl) userEl.innerText = info.account || '已授权';
+        if (vipEl) vipEl.innerText = info.vip_expire_date || '永久会员';
+        if (dotEl) {
+          dotEl.style.background = 'var(--primary)';
+          dotEl.style.boxShadow = '0 0 8px var(--primary)';
+        }
+        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+        closeAuthModal();
+      } else {
+        if (userEl) userEl.innerText = '未授权';
+        if (vipEl) vipEl.innerText = '未激活';
+        if (dotEl) {
+          dotEl.style.background = 'var(--accent-danger)';
+          dotEl.style.boxShadow = '0 0 8px var(--accent-danger)';
+        }
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        openAuthModal('login', false);
+      }
+    }
+
+    function initAuth() {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.get_auth_info) {
+        window.pywebview.api.get_auth_info().then(info => {
+          updateAuthDisplay(info);
+        }).catch(err => {
+          console.error("获取授权信息异常", err);
+        });
+      } else {
+        setTimeout(() => {
+          if (!currentAuthInfo) {
+            updateAuthDisplay({
+              is_authorized: false,
+              account: "",
+              vip_expire_date: "未授权",
+              udid: "HWID-MOCK-DEV-TEST-ENVIRONMENT-FINGERPRINT-64CHARS"
+            });
+          }
+        }, 300);
+      }
+    }
+
+    function submitAuthLogin() {
+      const accInput = document.getElementById('authAccountInput');
+      const pwdInput = document.getElementById('authPasswordInput');
+      const remCb = document.getElementById('rememberAuthCb');
+      const btn = document.getElementById('btnSubmitLogin');
+      const acc = accInput ? accInput.value.trim() : '';
+      const pwd = pwdInput ? pwdInput.value.trim() : '';
+
+      if (!acc || !pwd) {
+        setAuthStatusMsg('请输入账号和密码', 'error');
+        return;
+      }
+
+      if (remCb && remCb.checked) {
+        localStorage.setItem('auth_last_account', acc);
+      } else {
+        localStorage.removeItem('auth_last_account');
+      }
+
+      setAuthStatusMsg('正在通过 RSA 双向加密进行安全验证...', 'loading');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = '登录验证中...';
+      }
+
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.login_account) {
+        window.pywebview.api.login_account(acc, pwd).then(res => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '立即登录并验证';
+          }
+          if (res.success) {
+            setAuthStatusMsg('验证通过 · 欢迎使用！正在加载功能...', 'success');
+            showToast("授权验证成功，欢迎使用！");
+            setTimeout(() => {
+              if (window.pywebview && window.pywebview.api && window.pywebview.api.get_auth_info) {
+                window.pywebview.api.get_auth_info().then(updateAuthDisplay);
+              }
+            }, 400);
+          } else {
+            setAuthStatusMsg(res.msg || '登录失败，请检查账号密码', 'error');
+          }
+        }).catch(err => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '立即登录并验证';
+          }
+          setAuthStatusMsg('通信异常: ' + err, 'error');
+        });
+      } else {
+        setTimeout(() => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '立即登录并验证';
+          }
+          showToast("本地模拟登录成功");
+          updateAuthDisplay({
+            is_authorized: true,
+            account: acc,
+            vip_expire_date: "永久会员",
+            udid: "HWID-MOCK-DEV-TEST-ENVIRONMENT-FINGERPRINT-64CHARS"
+          });
+        }, 500);
+      }
+    }
+
+    function submitAuthRegister() {
+      const accInput = document.getElementById('authRegAccountInput');
+      const pwdInput = document.getElementById('authRegPasswordInput');
+      const pwdConfirmInput = document.getElementById('authRegPasswordConfirmInput');
+      const btn = document.getElementById('btnSubmitRegister');
+
+      const acc = accInput ? accInput.value.trim() : '';
+      const pwd = pwdInput ? pwdInput.value.trim() : '';
+      const pwdConfirm = pwdConfirmInput ? pwdConfirmInput.value.trim() : '';
+
+      if (!acc || !pwd || !pwdConfirm) {
+        setAuthStatusMsg('请填写完整的注册信息', 'error');
+        return;
+      }
+      if (acc.length < 5 || acc.length > 18) {
+        setAuthStatusMsg('注册账号长度需在 5~18 位字符之间', 'error');
+        return;
+      }
+      if (!/^[a-zA-Z0-9]+$/.test(acc)) {
+        setAuthStatusMsg('注册账号仅限使用英文字母或数字', 'error');
+        return;
+      }
+      if (pwd.length < 6) {
+        setAuthStatusMsg('密码长度不能少于 6 位', 'error');
+        return;
+      }
+      if (pwd !== pwdConfirm) {
+        setAuthStatusMsg('两次输入的密码不一致，请核对', 'error');
+        return;
+      }
+
+      setAuthStatusMsg('正在创建新账号并绑定设备...', 'loading');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = '正在注册中...';
+      }
+
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.register_account) {
+        window.pywebview.api.register_account(acc, pwd).then(res => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '立即免费注册并进入';
+          }
+          if (res.success) {
+            setAuthStatusMsg(res.msg || '注册成功！正在进入系统...', 'success');
+            showToast(res.msg || "注册成功！");
+            setTimeout(() => {
+              if (window.pywebview && window.pywebview.api && window.pywebview.api.get_auth_info) {
+                window.pywebview.api.get_auth_info().then(updateAuthDisplay);
+              }
+            }, 500);
+          } else {
+            setAuthStatusMsg(res.msg || '注册失败，该账号可能已被占用', 'error');
+          }
+        }).catch(err => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '立即免费注册并进入';
+          }
+          setAuthStatusMsg('注册通信异常: ' + err, 'error');
+        });
+      } else {
+        setTimeout(() => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '立即免费注册并进入';
+          }
+          showToast("本地模拟注册成功");
+          updateAuthDisplay({
+            is_authorized: true,
+            account: acc,
+            vip_expire_date: "永久会员",
+            udid: "HWID-MOCK-DEV-TEST-ENVIRONMENT-FINGERPRINT-64CHARS"
+          });
+        }, 500);
+      }
+    }
+
+    function submitAuthTopup() {
+      const accInput = document.getElementById('authTopupAccountInput');
+      const pwdInput = document.getElementById('authTopupPasswordInput');
+      const cardInput = document.getElementById('authCardInput');
+      const btn = document.getElementById('btnSubmitTopup');
+
+      const card = cardInput ? cardInput.value.trim() : '';
+      let acc = accInput ? accInput.value.trim() : '';
+      let pwd = pwdInput ? pwdInput.value.trim() : '';
+
+      if (!card) {
+        setAuthStatusMsg('请输入充值卡密', 'error');
+        return;
+      }
+
+      const isLoggedIn = currentAuthInfo && currentAuthInfo.is_authorized;
+      if (!isLoggedIn) {
+        if (!acc || !pwd) {
+          setAuthStatusMsg('未登录状态下请填写需要充值的账号和密码', 'error');
+          return;
+        }
+      } else {
+        acc = currentAuthInfo.account || acc;
+      }
+
+      setAuthStatusMsg('正在核验卡密与更新会员有效期...', 'loading');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = '充值验证中...';
+      }
+
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.recharge_card) {
+        window.pywebview.api.recharge_card(card, acc, pwd).then(res => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '立即使用卡密充值续费';
+          }
+          if (res.success) {
+            setAuthStatusMsg(res.msg || '充值成功！', 'success');
+            showToast(res.msg || "充值成功！");
+            if (cardInput) cardInput.value = '';
+            setTimeout(() => {
+              if (window.pywebview && window.pywebview.api && window.pywebview.api.get_auth_info) {
+                window.pywebview.api.get_auth_info().then(updateAuthDisplay);
+              }
+            }, 600);
+          } else {
+            setAuthStatusMsg(res.msg || '卡密无效或已被使用', 'error');
+          }
+        }).catch(err => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '立即使用卡密充值续费';
+          }
+          setAuthStatusMsg('充值通信异常: ' + err, 'error');
+        });
+      } else {
+        setTimeout(() => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '立即使用卡密充值续费';
+          }
+          showToast("本地模拟充值成功");
+        }, 500);
+      }
+    }
+
+    function submitAuthModifyPwd() {
+      const accInput = document.getElementById('authModAccountInput');
+      const oldPwdInput = document.getElementById('authModOldPwdInput');
+      const newPwdInput = document.getElementById('authModNewPwdInput');
+      const confirmPwdInput = document.getElementById('authModConfirmPwdInput');
+      const btn = document.getElementById('btnSubmitModifyPwd');
+
+      const acc = accInput ? accInput.value.trim() : '';
+      const oldPwd = oldPwdInput ? oldPwdInput.value.trim() : '';
+      const newPwd = newPwdInput ? newPwdInput.value.trim() : '';
+      const confirmPwd = confirmPwdInput ? confirmPwdInput.value.trim() : '';
+
+      if (!acc || !oldPwd || !newPwd || !confirmPwd) {
+        setAuthStatusMsg('请填写完整的修改密码信息', 'error');
+        return;
+      }
+      if (newPwd.length < 6) {
+        setAuthStatusMsg('新密码长度不能少于 6 位', 'error');
+        return;
+      }
+      if (oldPwd === newPwd) {
+        setAuthStatusMsg('新密码不能与原旧密码相同', 'error');
+        return;
+      }
+      if (newPwd !== confirmPwd) {
+        setAuthStatusMsg('两次输入的新密码不一致，请核对', 'error');
+        return;
+      }
+
+      setAuthStatusMsg('正在修改云端密码...', 'loading');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = '正在修改中...';
+      }
+
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.modify_password) {
+        window.pywebview.api.modify_password(acc, oldPwd, newPwd).then(res => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '确认修改密码';
+          }
+          if (res.success) {
+            setAuthStatusMsg('密码修改成功！请使用新密码登录', 'success');
+            showToast("密码修改成功！");
+            if (oldPwdInput) oldPwdInput.value = '';
+            if (newPwdInput) newPwdInput.value = '';
+            if (confirmPwdInput) confirmPwdInput.value = '';
+            setTimeout(() => {
+              switchAuthTab('login');
+              const loginAcc = document.getElementById('authAccountInput');
+              if (loginAcc) loginAcc.value = acc;
+            }, 1000);
+          } else {
+            setAuthStatusMsg(res.msg || '修改密码失败，原旧密码有误', 'error');
+          }
+        }).catch(err => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '确认修改密码';
+          }
+          setAuthStatusMsg('通信异常: ' + err, 'error');
+        });
+      } else {
+        setTimeout(() => {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '确认修改密码';
+          }
+          showToast("本地模拟密码修改成功");
+          switchAuthTab('login');
+        }, 500);
+      }
+    }
+
+    function copyMachineCode() {
+      const el = document.getElementById('authMachineCodeText');
+      const btn = document.getElementById('btnCopyHwid');
+      const text = el ? el.innerText.trim() : '';
+      if (!text || text === '读取中...') {
+        showToast("机器码正在读取中，请稍候");
+        return;
+      }
+      copyText(text);
+      if (btn) {
+        const origText = btn.innerText;
+        btn.innerText = '已复制';
+        setTimeout(() => { btn.innerText = origText; }, 1500);
+      }
+      showToast("64位硬件机器码已复制到剪贴板");
+    }
+
+    function triggerLogout() {
+      if (confirm("确定要退出当前授权登录吗？退出后需要重新输入账号密码激活。")) {
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.logout_account) {
+          window.pywebview.api.logout_account().then(() => {
+            showToast("已退出当前授权");
+            updateAuthDisplay({
+              is_authorized: false,
+              account: "",
+              vip_expire_date: "未授权",
+              udid: (currentAuthInfo && currentAuthInfo.udid) || ""
+            });
+          });
+        } else {
+          showToast("已退出登录");
+          updateAuthDisplay({
+            is_authorized: false,
+            account: "",
+            vip_expire_date: "未授权",
+            udid: (currentAuthInfo && currentAuthInfo.udid) || ""
+          });
+        }
+      }
+    }
   </script>
+
+  <!-- U验证 登录激活模态弹窗 (Auth Modal - 标准 4+1 翡翠暗黑全功能架构) -->
+  <div id="authModalOverlay" class="auth-overlay">
+    <div class="auth-card">
+      <button class="auth-close-btn" id="authCloseBtn" onclick="closeAuthModal()" title="关闭弹窗">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+
+      <!-- 头部：盾牌锁与大白话标题 -->
+      <div class="auth-header">
+        <div class="auth-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </div>
+        <div class="auth-title">软件使用授权验证</div>
+        <div class="auth-subtitle">请登录账号或使用卡密激活以解锁全部调试功能，一机一码保护您的数据安全</div>
+      </div>
+
+      <!-- 四大核心功能 Tab -->
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" id="tabBtnLogin" onclick="switchAuthTab('login')">账号登录</button>
+        <button class="auth-tab-btn" id="tabBtnRegister" onclick="switchAuthTab('register')">免费注册</button>
+        <button class="auth-tab-btn" id="tabBtnTopup" onclick="switchAuthTab('topup')">卡密充值</button>
+        <button class="auth-tab-btn" id="tabBtnModifyPwd" onclick="switchAuthTab('modifyPwd')">修改密码</button>
+      </div>
+
+      <!-- 面板 1: 账号登录 (输入框初始 100% 保持空白) -->
+      <div id="authPaneLogin" class="auth-pane active">
+        <div class="auth-field">
+          <label class="auth-label">使用账号</label>
+          <input type="text" class="input-box" id="authAccountInput" placeholder="请输入您的账号" autocomplete="off" onkeydown="if(event.key==='Enter')submitAuthLogin()" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">登录密码</label>
+          <div class="auth-input-wrap">
+            <input type="password" class="input-box" id="authPasswordInput" placeholder="请输入您的密码" autocomplete="off" onkeydown="if(event.key==='Enter')submitAuthLogin()" />
+            <button type="button" class="auth-eye-btn" onclick="togglePwdVisibility('authPasswordInput', this)" title="显示/隐藏密码">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+        <div class="auth-sub-links">
+          <label class="auth-remember-label">
+            <input type="checkbox" id="rememberAuthCb" />
+            <span>记住账号</span>
+          </label>
+          <div class="auth-link-group">
+            <span>没有账号？</span><a onclick="switchAuthTab('register')">立即注册</a>
+            <span style="color:var(--hairline);margin:0 4px;">|</span>
+            <a onclick="switchAuthTab('modifyPwd')">忘记密码</a>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btnSubmitLogin" onclick="submitAuthLogin()" style="width:100%;margin-top:2px;">
+          立即登录并验证
+        </button>
+      </div>
+
+      <!-- 面板 2: 免费注册 -->
+      <div id="authPaneRegister" class="auth-pane">
+        <div class="auth-field">
+          <label class="auth-label">注册账号 (5~18位字母或数字)</label>
+          <input type="text" class="input-box" id="authRegAccountInput" placeholder="请输入新账号（字母与数字）" autocomplete="off" onkeydown="if(event.key==='Enter')submitAuthRegister()" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">设置密码 (不能少于6位)</label>
+          <div class="auth-input-wrap">
+            <input type="password" class="input-box" id="authRegPasswordInput" placeholder="请输入新密码" autocomplete="off" onkeydown="if(event.key==='Enter')submitAuthRegister()" />
+            <button type="button" class="auth-eye-btn" onclick="togglePwdVisibility('authRegPasswordInput', this)" title="显示/隐藏密码">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">确认密码</label>
+          <div class="auth-input-wrap">
+            <input type="password" class="input-box" id="authRegPasswordConfirmInput" placeholder="请再次输入新密码" autocomplete="off" onkeydown="if(event.key==='Enter')submitAuthRegister()" />
+            <button type="button" class="auth-eye-btn" onclick="togglePwdVisibility('authRegPasswordConfirmInput', this)" title="显示/隐藏密码">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+        <div class="auth-sub-links" style="justify-content:flex-end;">
+          <div class="auth-link-group">
+            <span>已有账号？</span><a onclick="switchAuthTab('login')">返回登录</a>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btnSubmitRegister" onclick="submitAuthRegister()" style="width:100%;margin-top:2px;">
+          立即免费注册并进入
+        </button>
+      </div>
+
+      <!-- 面板 3: 卡密充值续费 -->
+      <div id="authPaneTopup" class="auth-pane">
+        <div class="auth-field">
+          <label class="auth-label">充值账号</label>
+          <input type="text" class="input-box" id="authTopupAccountInput" placeholder="请输入充值目标账号" autocomplete="off" />
+        </div>
+        <div class="auth-field" id="authTopupPwdWrap">
+          <label class="auth-label">账号登录密码 (验证所有权)</label>
+          <div class="auth-input-wrap">
+            <input type="password" class="input-box" id="authTopupPasswordInput" placeholder="请输入该账号登录密码" autocomplete="off" />
+            <button type="button" class="auth-eye-btn" onclick="togglePwdVisibility('authTopupPasswordInput', this)" title="显示/隐藏密码">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">充值卡密 (16位)</label>
+          <input type="text" class="input-box" id="authCardInput" placeholder="请输入购买获取的充值卡密" autocomplete="off" onkeydown="if(event.key==='Enter')submitAuthTopup()" />
+        </div>
+        <div class="auth-sub-links" style="justify-content:flex-end;">
+          <div class="auth-link-group">
+            <span>已有账号？</span><a onclick="switchAuthTab('login')">返回登录</a>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btnSubmitTopup" onclick="submitAuthTopup()" style="width:100%;margin-top:2px;">
+          立即使用卡密充值续费
+        </button>
+      </div>
+
+      <!-- 面板 4: 修改密码 -->
+      <div id="authPaneModifyPwd" class="auth-pane">
+        <div class="auth-field">
+          <label class="auth-label">目标账号</label>
+          <input type="text" class="input-box" id="authModAccountInput" placeholder="请输入需要改密的账号" autocomplete="off" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">原旧密码</label>
+          <div class="auth-input-wrap">
+            <input type="password" class="input-box" id="authModOldPwdInput" placeholder="请输入当前原旧密码" autocomplete="off" />
+            <button type="button" class="auth-eye-btn" onclick="togglePwdVisibility('authModOldPwdInput', this)" title="显示/隐藏密码">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">设置新密码 (不能少于6位)</label>
+          <div class="auth-input-wrap">
+            <input type="password" class="input-box" id="authModNewPwdInput" placeholder="请输入新密码" autocomplete="off" />
+            <button type="button" class="auth-eye-btn" onclick="togglePwdVisibility('authModNewPwdInput', this)" title="显示/隐藏密码">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">确认新密码</label>
+          <div class="auth-input-wrap">
+            <input type="password" class="input-box" id="authModConfirmPwdInput" placeholder="请再次输入新密码" autocomplete="off" onkeydown="if(event.key==='Enter')submitAuthModifyPwd()" />
+            <button type="button" class="auth-eye-btn" onclick="togglePwdVisibility('authModConfirmPwdInput', this)" title="显示/隐藏密码">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+        <div class="auth-sub-links" style="justify-content:flex-end;">
+          <div class="auth-link-group">
+            <span>记起密码？</span><a onclick="switchAuthTab('login')">返回登录</a>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btnSubmitModifyPwd" onclick="submitAuthModifyPwd()" style="width:100%;margin-top:2px;">
+          确认修改密码
+        </button>
+      </div>
+
+      <!-- 底部吸底 64 位机器码卡片 -->
+      <div class="auth-hwid-dock">
+        <div class="auth-hwid-text-wrap">
+          <span class="auth-hwid-title">本机专属硬件标识 (一机一码)</span>
+          <span class="auth-hwid-val" id="authMachineCodeText">读取中...</span>
+        </div>
+        <button class="btn-copy" id="btnCopyHwid" onclick="copyMachineCode()">复制机器码</button>
+      </div>
+
+      <!-- 底部状态指示灯条 -->
+      <div id="authStatusBar" class="auth-status-bar">
+        <div class="auth-status-dot"></div>
+        <span id="authStatusText">准备就绪 · 请输入凭据登录或免费注册账号</span>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
