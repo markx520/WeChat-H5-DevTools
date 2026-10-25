@@ -501,8 +501,9 @@ class TargetManager:
 class ProcessHookManager:
     """微信主进程与 WeChatAppEx 渲染内核 Frida 注入控制器"""
 
-    def __init__(self, custom_version: Optional[int] = None):
+    def __init__(self, custom_version: Optional[int] = None, debug: bool = False):
         self.custom_version = custom_version
+        self.debug = debug
         self.sessions: List[Any] = []
         self.scripts: List[Any] = []
         self.lock = threading.Lock()
@@ -513,14 +514,14 @@ class ProcessHookManager:
         wechat_appex_procs = []
         weixin_procs = []
 
-        for proc in psutil.process_iter(['pid', 'name', 'ppid', 'exe', 'cmdline']):
+        for proc in psutil.process_iter(['pid', 'name', 'ppid', 'exe', 'cmdline', 'create_time']):
             try:
-                name = (proc.info['name'] or '').lower()
+                name = (proc.info.get('name') or '').lower()
                 if name in ['wechat.exe', 'weixin.exe']:
                     weixin_procs.append(proc.info)
                 elif name in ['wechatappex.exe', 'weixinext.exe']:
                     wechat_appex_procs.append(proc.info)
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 continue
 
         broker_info = None
@@ -530,19 +531,20 @@ class ProcessHookManager:
             # 统计作为子进程父进程最多的 PID
             ppid_counts = {}
             for p in wechat_appex_procs:
-                ppid = p['ppid']
-                ppid_counts[ppid] = ppid_counts.get(ppid, 0) + 1
+                ppid = p.get('ppid')
+                if ppid is not None:
+                    ppid_counts[ppid] = ppid_counts.get(ppid, 0) + 1
 
             candidate_broker_pid = None
             for pid, _ in sorted(ppid_counts.items(), key=lambda x: x[1], reverse=True):
-                if any(p['pid'] == pid for p in wechat_appex_procs):
+                if any(p.get('pid') == pid for p in wechat_appex_procs):
                     candidate_broker_pid = pid
                     break
 
             if candidate_broker_pid:
-                broker_info = next(p for p in wechat_appex_procs if p['pid'] == candidate_broker_pid)
+                broker_info = next(p for p in wechat_appex_procs if p.get('pid') == candidate_broker_pid)
             else:
-                non_renderers = [p for p in wechat_appex_procs if not any('--type=' in arg for arg in (p.get('cmdline') or []))]
+                non_renderers = [p for p in wechat_appex_procs if not any('--type=' in str(arg) for arg in (p.get('cmdline') or []))]
                 broker_info = non_renderers[0] if non_renderers else wechat_appex_procs[0]
 
             exe_path = broker_info.get('exe') or ''
@@ -572,32 +574,58 @@ class ProcessHookManager:
         }
 
     @staticmethod
-    def load_version_config(version: int) -> Optional[Dict[str, Any]]:
-        """从 resources/config/addresses.<version>.json 读取地址与偏移"""
+    def load_version_config(version: int, allow_fallback: bool = True, silent: bool = False) -> Optional[Dict[str, Any]]:
+        """从 resources/config/addresses.<version>.json 读取地址与偏移，支持版本邻近自愈回退"""
         pkg_dir = Path(__file__).resolve().parent.parent
         root_dir = pkg_dir.parent
-        candidates = [
-            pkg_dir / "resources" / "config" / f"addresses.{version}.json",
-            root_dir / "resources" / "config" / f"addresses.{version}.json",
-            Path.cwd() / "resources" / "config" / f"addresses.{version}.json",
+        search_dirs = [
+            pkg_dir / "resources" / "config",
+            root_dir / "resources" / "config",
+            Path.cwd() / "resources" / "config",
         ]
-        config_path = None
-        for cand in candidates:
+
+        # 1. 优先精确匹配
+        for sdir in search_dirs:
+            cand = sdir / f"addresses.{version}.json"
             if cand.exists():
-                config_path = cand
-                break
+                try:
+                    with open(cand, "r", encoding="utf-8") as f:
+                        return json.load(f)
+                except Exception as e:
+                    log_error(f"读取配置文件失败 {cand}: {e}")
 
-        if not config_path:
-            log_warn(f"未找到版本 {version} 的地址配置文件: {candidates[0]}")
+        if not allow_fallback:
+            log_warn(f"未找到针对 RadiumWMPF {version} 的精确配置文件")
             return None
 
-        try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data
-        except Exception as e:
-            log_error(f"读取配置文件失败: {e}")
-            return None
+        # 2. 邻近版本自愈回退匹配
+        available_versions = []
+        version_file_map = {}
+        for sdir in search_dirs:
+            if sdir.exists():
+                for f in sdir.glob("addresses.*.json"):
+                    m = re.search(r"addresses\.(\d+)\.json", f.name)
+                    if m:
+                        v = int(m.group(1))
+                        available_versions.append(v)
+                        version_file_map[v] = f
+
+        if available_versions:
+            closest_ver = min(available_versions, key=lambda v: abs(v - version))
+            diff = abs(closest_ver - version)
+            if diff <= 2500:
+                fallback_path = version_file_map[closest_ver]
+                try:
+                    with open(fallback_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    if not silent:
+                        log_info(f"未找到 RadiumWMPF {version} 的精确偏移，已自动匹配最近兼容版本 {closest_ver} (自愈生效)")
+                    return data
+                except Exception as e:
+                    log_error(f"读取回退配置文件失败 {fallback_path}: {e}")
+
+        log_warn(f"未找到版本 {version} 及其邻近兼容的地址配置文件")
+        return None
 
     def inject_flue_hook(self, pid: int, version: int, config: Dict[str, Any]) -> bool:
         """向 WeChatAppEx.exe Broker 注入 flue.dll Hook 脚本"""
@@ -607,6 +635,59 @@ class ProcessHookManager:
 
         hook_template = """
         var config = @@CONFIG@@;
+        var isDebug = @@IS_DEBUG@@;
+        var diagnosticCounts = {};
+        function diagnostic(name, detail) {
+            var count = (diagnosticCounts[name] || 0) + 1;
+            diagnosticCounts[name] = count;
+            if (isDebug && count <= 5) {
+                send("[TRACE] " + name + " PID=" + Process.id +
+                     " TID=" + Process.getCurrentThreadId() + " count=" + count +
+                     " time=" + new Date().toISOString() + " " + (detail || ""));
+            }
+        }
+        if (isDebug) {
+            var summaryCount = 0;
+            var diagnosticTimer = setInterval(function () {
+                send("[HOOK-STATS] PID=" + Process.id + " time=" + new Date().toISOString() +
+                     " CDPFilterHook=" + (diagnosticCounts.CDPFilterHook || 0) +
+                     " CDPFilterPatched=" + (diagnosticCounts.CDPFilterPatched || 0) +
+                     " LoadStartHook=" + (diagnosticCounts.LoadStartHook || 0) +
+                     " BrokerCreateProcessW=" + (diagnosticCounts.BrokerCreateProcessW || 0) +
+                     " errors=" + ((diagnosticCounts.CDPFilterError || 0) + (diagnosticCounts.LoadStartError || 0)));
+                if (++summaryCount >= 4) clearInterval(diagnosticTimer);
+            }, 15000);
+        }
+
+        try {
+            var brokerCreateProcess = Process.getModuleByName("kernel32.dll").getExportByName("CreateProcessW");
+            Interceptor.attach(brokerCreateProcess, {
+                onEnter: function (args) {
+                    diagnostic("BrokerCreateProcessW");
+                    this.processInfo = args[9];
+                    this.childRole = null;
+                    try {
+                        var cmd = args[1].isNull() ? "" : args[1].readUtf16String();
+                        if (cmd && /wechatappex\\.exe|weixinext\\.exe/i.test(cmd)) {
+                            var role = cmd.match(/--type=([^\\s"]+)/);
+                            var render = cmd.match(/--wmpf-render-type=([^\\s"]+)/);
+                            this.childRole = "type=" + (role ? role[1] : "browser") +
+                                             " renderType=" + (render ? render[1] : "none");
+                            diagnostic("BrokerWeChatChild", this.childRole);
+                        }
+                    } catch (e) { diagnostic("BrokerObserveError", String(e)); }
+                },
+                onLeave: function (retval) {
+                    if (this.childRole && !retval.isNull()) {
+                        try {
+                            diagnostic("BrokerChildCreated", this.childRole +
+                                       " childPID=" + this.processInfo.add(Process.pointerSize * 2).readU32());
+                        } catch (e) { diagnostic("BrokerObserveError", String(e)); }
+                    }
+                }
+            });
+            send("[OBSERVE] Broker CreateProcessW observer installed (no argument changes)");
+        } catch (e) { send("[OBSERVE-ERROR] Broker CreateProcessW: " + e); }
 
         function findTargetModule() {
             return Process.findModuleByName("flue.dll") || Process.findModuleByName("WeChatAppEx.exe");
@@ -626,6 +707,7 @@ class ProcessHookManager:
                     var cdpTarget = base.add(ptr(config.CDPFilterHookOffset));
                     Interceptor.attach(cdpTarget, {
                         onEnter: function (args) {
+                            diagnostic("CDPFilterHook");
                             this.v216 = args[0];
                         },
                         onLeave: function (retval) {
@@ -633,9 +715,9 @@ class ProcessHookManager:
                                 var v216Val = this.v216.readPointer();
                                 if (v216Val.add(8).readU32() === 6) {
                                     v216Val.add(8).writeU32(0x0);
-                                    send("[PASS] [CDPFilter] 已拦截放行 CDP 过滤: 0x6 -> 0x0");
+                                    diagnostic("CDPFilterPatched", "0x6 -> 0x0");
                                 }
-                            } catch (e) {}
+                            } catch (e) { diagnostic("CDPFilterError", String(e)); }
                         }
                     });
                     send("[SUCCESS] CDPFilterHook 成功挂载 -> 偏移 " + config.CDPFilterHookOffset);
@@ -649,12 +731,13 @@ class ProcessHookManager:
                 try {
                     var loadStartTarget = base.add(ptr(config.LoadStartHookOffset));
                     var sceneOffsets = config.SceneOffsets || [64, 1512, 8, 1448, 16, 456];
+                    var sceneList = [1005, 1053, 1074, 1145, 1178, 1256, 1260, 1302, 1308];
                     Interceptor.attach(loadStartTarget, {
                         onEnter: function (args) {
+                            diagnostic("LoadStartHook");
                             try {
-                                // 强制开启 DevTools (rdx 标志位 0x1)
-                                if ((this.context.rdx & 0xFF) !== 1) {
-                                    this.context.rdx = (this.context.rdx & ~0xFF) | 0x1;
+                                if (args[1].and(0xFF).toInt32() !== 1) {
+                                    args[1] = args[1].and(ptr("0xffffffffffffff00")).or(1);
                                     send("[PASS] [LoadStart] 强制激活 DevTools (rdx |= 0x1)");
                                 }
 
@@ -663,7 +746,7 @@ class ProcessHookManager:
                                     var passArgs = this.context.rcx.add(sceneOffsets[0]).readPointer().add(sceneOffsets[1]).readPointer();
                                     var scenePtr = passArgs.add(sceneOffsets[2]).readPointer().add(sceneOffsets[3]).readPointer().add(sceneOffsets[4]).readPointer().add(sceneOffsets[5]);
                                     var scene = scenePtr.readInt();
-                                    var sceneList = [1005, 1053, 1074, 1145, 1256, 1260, 1302, 1308];
+                                    diagnostic("SceneRead", "scene=" + scene);
                                     if (sceneList.indexOf(scene) !== -1) {
                                         scenePtr.writeInt(1101);
                                         send("[PASS] [SceneHook] 场景值限制已解除: " + scene + " -> 1101");
@@ -672,13 +755,12 @@ class ProcessHookManager:
                                     var passArgs = this.context.rcx.add(56).readPointer().add(sceneOffsets[0]).readPointer();
                                     var scenePtr = passArgs.add(8).readPointer().add(sceneOffsets[1]).readPointer().add(sceneOffsets[2]).readPointer().add(sceneOffsets[3]);
                                     var scene = scenePtr.readInt();
-                                    var sceneList = [1005, 1053, 1074, 1145, 1256, 1260, 1302, 1308];
                                     if (sceneList.indexOf(scene) !== -1) {
                                         scenePtr.writeInt(1101);
                                         send("[PASS] [SceneHook] 场景值限制已解除: " + scene + " -> 1101");
                                     }
                                 }
-                            } catch (e) {}
+                            } catch (e) { diagnostic("LoadStartError", String(e)); }
                         }
                     });
                     send("[SUCCESS] LoadStartHook 成功挂载 -> 偏移 " + config.LoadStartHookOffset);
@@ -700,19 +782,25 @@ class ProcessHookManager:
         }
         """
 
-        script_code = hook_template.replace("@@CONFIG@@", json.dumps(config))
+        script_code = hook_template.replace("@@CONFIG@@", json.dumps(config)).replace("@@IS_DEBUG@@", "true" if self.debug else "false")
 
         try:
-            log_step(f"正在附加至 WeChatAppEx Broker 主控制进程 (PID: {pid})...")
+            log_step(f"正在附加至 WeChatAppEx Broker 控制进程 (PID: {pid})...")
             session = frida.attach(pid)
             script = session.create_script(script_code)
 
             def on_msg(message, data):
                 if message.get("type") == "send":
-                    payload = message.get("payload", "")
+                    payload = str(message.get("payload", ""))
+                    if not self.debug:
+                        if payload.startswith("[TRACE]") or payload.startswith("[HOOK-STATS]") or payload.startswith("[OBSERVE]"):
+                            return
+                        if "CDPFilterHook 成功挂载" in payload or "LoadStartHook 成功挂载" in payload:
+                            log_info(f"微信内核调试通道挂载就绪 (版本: {version})")
+                            return
                     log_info(f"[flue.dll:{pid}] {payload}")
                 elif message.get("type") == "error":
-                    log_warn(f"[flue.dll:{pid}] Frida 异常: {message.get('description', '')}")
+                    log_warn(f"[flue.dll:{pid}] 调试通道异常: {message.get('description', '')}")
 
             script.on("message", on_msg)
             script.load()
@@ -740,17 +828,41 @@ class ProcessHookManager:
             cpsPtr = Module.findExportByName(null, "CreateProcessW");
         }
 
+        var isDebug = @@IS_DEBUG@@;
         var allocatedStrings = [];
+        var createProcessHits = 0;
+        var matchedProcessHits = 0;
+        if (isDebug) {
+            var summaryCount = 0;
+            var diagnosticTimer = setInterval(function () {
+                send("[HOOK-STATS] PID=" + Process.id + " time=" + new Date().toISOString() +
+                     " CreateProcessW=" + createProcessHits + " matched=" + matchedProcessHits);
+                if (++summaryCount >= 4) clearInterval(diagnosticTimer);
+            }, 15000);
+        }
 
         if (cpsPtr) {
-            send("[INFO] Weixin.exe CreateProcessW API 已定位: " + cpsPtr);
+            if (isDebug) {
+                send("[INFO] Weixin.exe CreateProcessW API 已定位: " + cpsPtr);
+            }
             Interceptor.attach(cpsPtr, {
                 onEnter: function (args) {
+                    createProcessHits++;
+                    if (isDebug && createProcessHits <= 5) {
+                        send("[TRACE] CreateProcessW PID=" + Process.id +
+                             " TID=" + Process.getCurrentThreadId() + " count=" + createProcessHits +
+                             " time=" + new Date().toISOString());
+                    }
                     this.cmdlinePtr = args[1];
                     if (this.cmdlinePtr) {
                         var cmd = this.cmdlinePtr.readUtf16String();
                         if (cmd && (cmd.indexOf("WeChatAppEx.exe") !== -1 || cmd.indexOf("WeixinExt.exe") !== -1 || cmd.indexOf("--type=renderer") !== -1)) {
                             if (cmd.indexOf("crashpad") === -1) {
+                                matchedProcessHits++;
+                                if (isDebug && matchedProcessHits <= 5) {
+                                    send("[TRACE] CreateProcessW matched WeChat child PID=" + Process.id +
+                                         " count=" + matchedProcessHits);
+                                }
                                 var newCmd = cmd;
                                 if (newCmd.indexOf("--no-sandbox") === -1) {
                                     newCmd += " --no-sandbox";
@@ -788,16 +900,25 @@ class ProcessHookManager:
         }
         """
 
+        script_code = hook_code.replace("@@IS_DEBUG@@", "true" if self.debug else "false")
+
         try:
             log_step(f"正在附加至微信主程序 Weixin.exe (PID: {weixin_pid})...")
             session = frida.attach(weixin_pid)
-            script = session.create_script(hook_code)
+            script = session.create_script(script_code)
 
             def on_msg(message, data):
                 if message.get("type") == "send":
-                    log_info(f"[Weixin:{weixin_pid}] {message.get('payload', '')}")
+                    payload = str(message.get("payload", ""))
+                    if not self.debug:
+                        if payload.startswith("[TRACE]") or payload.startswith("[HOOK-STATS]") or "CreateProcessW API 已定位" in payload:
+                            return
+                        if "CreateProcessW Hook 已就绪" in payload or "已为新拉起的渲染子进程注入" in payload:
+                            log_info(f"微信主程序调试参数注入拦截已激活 (PID: {weixin_pid})")
+                            return
+                    log_info(f"[Weixin:{weixin_pid}] {payload}")
                 elif message.get("type") == "error":
-                    log_warn(f"[Weixin:{weixin_pid}] Frida 异常: {message.get('description', '')}")
+                    log_warn(f"[Weixin:{weixin_pid}] 调试通道异常: {message.get('description', '')}")
 
             script.on("message", on_msg)
             script.load()
@@ -835,7 +956,8 @@ class KernelCDPEngine:
         public_cdp_port: Optional[int] = None,
         auto_hook: bool = True,
         custom_version: Optional[int] = None,
-        initial_url: Optional[str] = None
+        initial_url: Optional[str] = None,
+        debug: bool = False
     ):
         self.debug_port = debug_port
         self.cdp_port = cdp_port
@@ -843,9 +965,10 @@ class KernelCDPEngine:
         self.auto_hook = auto_hook
         self.custom_version = custom_version
         self.initial_url = initial_url
+        self.debug = debug
 
         self.target_manager = TargetManager(cdp_port=self.public_cdp_port, initial_url=self.initial_url)
-        self.hook_manager = ProcessHookManager(custom_version=self.custom_version)
+        self.hook_manager = ProcessHookManager(custom_version=self.custom_version, debug=self.debug)
         self.codec = ProtocolCodec()
 
         # 微信内核 flue.dll 连接集合
@@ -1630,29 +1753,168 @@ class KernelCDPEngine:
         self._print_dashboard()
         return True
 
+
     def _execute_wechat_hooks(self):
         """执行微信进程探测与 Hook 注入"""
+
         env = ProcessHookManager.detect_wechat_environment()
+
         broker = env.get("broker")
         detected_version = env.get("wmpf_version")
         final_version = self.custom_version or detected_version or 25510
         weixin_procs = env.get("weixin_procs", [])
 
+        # ============================================================
+        # 1. WeChatAppEx Broker 内核 Hook
+        # ============================================================
         if not broker:
-            log_warn("当前未检测到运行中的 WeChatAppEx.exe 进程，网关将在后台持续等待内核连接...")
+            log_warn(
+                "当前未检测到运行中的 WeChatAppEx.exe 进程，"
+                "网关将在后台持续等待内核连接..."
+            )
         else:
-            log_info(f"探测到 WeChatAppEx Broker 主控制进程 PID: {broker['pid']} (版本: {final_version})")
-            config = ProcessHookManager.load_version_config(final_version)
+            broker_pid = broker["pid"]
+            broker_ppid = broker.get("ppid")
+
+            log_info(
+                f"探测到 WeChatAppEx Broker 主控制进程 "
+                f"PID: {broker_pid}, "
+                f"PPID: {broker_ppid} "
+                f"(版本: {final_version})"
+            )
+
+            config = ProcessHookManager.load_version_config(
+                final_version
+            )
+
             if config:
                 # 注入 WeChatAppEx flue.dll
-                self.hook_manager.inject_flue_hook(broker['pid'], final_version, config)
-            else:
-                log_warn(f"未找到针对版本 {final_version} 的偏移配置，跳过内核 Hook")
+                result = self.hook_manager.inject_flue_hook(
+                    broker_pid,
+                    final_version,
+                    config
+                )
 
-        # 附着到 Weixin.exe
-        if weixin_procs:
-            main_weixin = weixin_procs[0]
-            self.hook_manager.inject_weixin_hook(main_weixin['pid'])
+                if not result:
+                    log_warn(
+                        f"WeChatAppEx Broker Hook 注入失败，"
+                        f"PID: {broker_pid}"
+                    )
+            else:
+                log_warn(
+                    f"未找到针对版本 {final_version} 的偏移配置，"
+                    "跳过内核 Hook"
+                )
+
+        # ============================================================
+        # 2. 查找真正的 Weixin.exe 主进程
+        # ============================================================
+        if not weixin_procs:
+            log_warn(
+                "未检测到 Weixin.exe 进程，"
+                "跳过 CreateProcessW Hook"
+            )
+            return
+
+        main_weixin = None
+
+        # 优先使用 Broker 的父进程 PID
+        if broker:
+            broker_ppid = broker.get("ppid")
+
+            if broker_ppid is not None:
+                main_weixin = next(
+                    (
+                        proc for proc in weixin_procs
+                        if proc.get("pid") == broker_ppid
+                        and (
+                            proc.get("name") or ""
+                        ).lower() in ("weixin.exe", "wechat.exe")
+                    ),
+                    None
+                )
+
+                if main_weixin:
+                    log_info(
+                        "通过 Broker 父进程关系识别微信主进程: "
+                        f"PID={main_weixin['pid']}"
+                    )
+
+        # ============================================================
+        # 3. 父进程匹配失败时，排除辅助进程
+        # ============================================================
+        if main_weixin is None:
+            log_warn(
+                "无法通过 Broker 父进程识别微信主进程，"
+                "尝试通过启动参数筛选..."
+            )
+
+            candidates = []
+
+            for proc in weixin_procs:
+                cmdline = proc.get("cmdline") or []
+
+                # 排除 --type=wxocr、--type=wxplayer 等子进程
+                is_subprocess = any(
+                    str(arg).lower().startswith("--type=")
+                    for arg in cmdline
+                )
+
+                if not is_subprocess:
+                    candidates.append(proc)
+
+            if len(candidates) == 1:
+                main_weixin = candidates[0]
+
+                log_info(
+                    "通过启动参数识别微信主进程: "
+                    f"PID={main_weixin['pid']}"
+                )
+
+            elif len(candidates) > 1:
+                candidates.sort(key=lambda p: p.get("create_time", 0), reverse=True)
+                main_weixin = candidates[0]
+                log_info(
+                    f"检测到多个微信运行实例 ({[p['pid'] for p in candidates]})，"
+                    f"已自动智能选定活跃实例 PID={main_weixin['pid']}"
+                )
+
+        # ============================================================
+        # 4. 注入真正的 Weixin.exe 主进程
+        # ============================================================
+        if main_weixin is None:
+            log_warn(
+                "无法唯一确认微信主进程，"
+                "跳过 CreateProcessW Hook，避免错误注入"
+            )
+            return
+
+        main_pid = main_weixin["pid"]
+
+        log_info(
+            f"最终确认微信主进程 PID: {main_pid}"
+        )
+
+        log_info(
+            f"准备向微信主进程 PID={main_pid} "
+            "注入 CreateProcessW Hook..."
+        )
+
+        result = self.hook_manager.inject_weixin_hook(
+            main_pid
+        )
+
+        if result:
+            log_info(
+                f"微信主进程 CreateProcessW Hook "
+                f"注入成功，PID={main_pid}"
+            )
+        else:
+            log_warn(
+                f"微信主进程 CreateProcessW Hook "
+                f"注入失败，PID={main_pid}"
+            )
+
 
     def _print_dashboard(self):
         """打印服务运行状态大盘"""
@@ -1706,7 +1968,8 @@ def run_cdp_engine(
     public_cdp_port: Optional[int] = None,
     no_hook: bool = False,
     version: Optional[int] = None,
-    initial_url: Optional[str] = None
+    initial_url: Optional[str] = None,
+    debug: bool = False
 ):
     """启动入口"""
     engine = KernelCDPEngine(
@@ -1715,7 +1978,8 @@ def run_cdp_engine(
         public_cdp_port=public_cdp_port,
         auto_hook=not no_hook,
         custom_version=version,
-        initial_url=initial_url
+        initial_url=initial_url,
+        debug=debug
     )
 
     try:

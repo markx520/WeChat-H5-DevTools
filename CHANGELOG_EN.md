@@ -5,6 +5,15 @@ The format is aligned with standard semantic versioning and changelog convention
 
 ---
 
+## [1.2.1] - 2026-10-25
+
+1. **Precision WeChat Main Process Resolution**: Enhanced process identification using parent-child topology and parameter filtering, eliminating injection failure in multi-process WeChat environments.
+2. **Kernel Offset Calibration & Auto-Healing**: Calibrated RadiumWMPF 25510 offsets and implemented intelligent nearest-version fallback for seamless compatibility across WeChat updates.
+3. **Log Sanitization & Noise Reduction**: Silenced high-frequency internal stats by default, standardizing on user-friendly dev logs and shielding underlying mechanisms.
+4. **Environment Diagnostics & MCP Agent Interop**: Opened doctor and status queries without activation barriers, ensuring full compliance with MCP JSON-RPC standards for external AI tools.
+
+---
+
 ## [1.1.2] - 2026-09-26
 
 1. **Custom WeChat Installation Path Support**: Added host path configuration card and native directory picker in GUI, enabling persistent path storage and auto-detection.

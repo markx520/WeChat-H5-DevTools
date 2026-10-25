@@ -1,6 +1,6 @@
 {
   "name": "wechat-h5-devtools",
-  "version": "1.1.2",
+  "version": "1.2.1",
   "description": "微信公众号 / 小程序前端调试与排版分析工具链 (WeChat H5 & MiniProgram DevTools)",
   "main": "wechat_h5_devtools/extractor/webcrack_runner.js",
   "scripts": {

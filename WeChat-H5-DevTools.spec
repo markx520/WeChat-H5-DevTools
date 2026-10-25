@@ -93,5 +93,6 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=str(project_root / "wechat_h5_devtools" / "gui" / "logo.ico"),
+    version=str(project_root / "file_version_info.txt"),
     uac_admin=False,
 )

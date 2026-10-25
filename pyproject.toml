@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wechat-h5-devtools"
-version = "1.1.2"
+version = "1.2.1"
 description = "微信公众号与内嵌 H5 满血前端调试与排版审查工具套件"
 authors = [{ name = "markx520", email = "markx520@users.noreply.github.com" }]
 readme = "README.md"

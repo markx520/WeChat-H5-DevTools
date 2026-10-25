@@ -17,12 +17,13 @@ from .extractor.api_analyzer import APIAnalyzer
 from .injector.kernel_cdp import run_cdp_engine, DEFAULT_DEBUG_PORT, DEFAULT_CDP_PORT
 
 @click.group(invoke_without_command=True)
-@click.version_option(version="1.1.2", prog_name="WeChat-H5-DevTools", message="%(prog)s v%(version)s")
+@click.version_option(version="1.2.1", prog_name="WeChat-H5-DevTools", message="%(prog)s v%(version)s")
 @click.pass_context
 def cli(ctx):
     """WeChat-H5-DevTools: 微信网页开发与调试工具箱"""
     # 商业版权与 U验证 授权硬门禁保护 (避免被他人随意扩散导致封号)
-    if ctx.invoked_subcommand and ctx.invoked_subcommand not in ["gui"]:
+    public_commands = ["gui", "doctor", "status", "mcp", "targets"]
+    if ctx.invoked_subcommand and ctx.invoked_subcommand not in public_commands:
         from .auth import auth_mgr
         if not auth_mgr.is_authorized():
             udid = auth_mgr.get_hardware_udid()
@@ -74,7 +75,7 @@ def doctor_cmd(as_json):
     from .injector.kernel_cdp import ProcessHookManager
     wmpf_match = re.search(r'Build\s+(\d+)', radium_kernel)
     kernel_build = int(wmpf_match.group(1)) if wmpf_match else 25510
-    has_config = ProcessHookManager.load_version_config(kernel_build) is not None
+    has_config = ProcessHookManager.load_version_config(kernel_build, silent=as_json) is not None
     config_note = f"[green]已适配 (addresses.{kernel_build}.json)[/green]" if has_config else f"[yellow]通用兼容模式 (建议补充 addresses.{kernel_build}.json)[/yellow]"
 
     edge_launcher = BrowserLauncher("edge")
@@ -231,14 +232,16 @@ def browser_cmd(path, port, proxy_port):
 @click.option("--version", "-v", default=None, type=int, help="手动指定 WMPF 内核版本号 (如: 25510)")
 @click.option("--no-hook", is_flag=True, default=False, help="仅启动网关服务，不执行 Frida 注入")
 @click.option("--url", "-u", default=None, help="初始目标文章链接 URL (如: https://mp.weixin.qq.com/s/...)")
-def cdp_cmd(debug_port, cdp_port, version, no_hook, url):
+@click.option("--debug", is_flag=True, default=False, help="开启底层 Frida 细粒度跟踪与调试日志")
+def cdp_cmd(debug_port, cdp_port, version, no_hook, url, debug):
     print_banner()
     run_cdp_engine(
         debug_port=debug_port,
         cdp_port=cdp_port,
         no_hook=no_hook,
         version=version,
-        initial_url=url
+        initial_url=url,
+        debug=debug
     )
 
 @cli.command(name="proxy", help="启动 vConsole 透明代理注入网关 (支持微信免 F12 浮动控制台与本地文件替换)")

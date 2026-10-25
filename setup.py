@@ -24,7 +24,7 @@ if __name__ == "__main__":
     except Exception:
         setup(
             name="wechat-h5-devtools",
-            version="1.1.2",
+            version="1.2.1",
             description="微信公众号与内嵌 H5 满血调试与逆向工程套件",
             license="CC-BY-NC-SA-4.0",
             packages=find_packages(),

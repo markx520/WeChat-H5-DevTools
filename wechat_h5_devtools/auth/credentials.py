@@ -4,7 +4,7 @@ wechat_h5_devtools/auth/credentials.py
 U验证云端核心连接凭据与专属 RSA 双向密钥配置 (AppID: 1007)
 """
 
-BASE_URL = "http://111.229.124.170:8088"
+BASE_URL = "http://35.208.142.104"
 APP_ID = "1007"
 APP_NAME = "1.0.0"
 APP_KEY = "0995b4fc6b64347e2761929b47d1f318"
