@@ -13,7 +13,7 @@ import shutil
 import subprocess
 import urllib.request
 import webbrowser
-from typing import Optional, Set, Dict, List
+from typing import Optional, Set, Dict, List, Any
 import psutil
 
 from ..utils.logger import log_info, log_warn, log_error, log_step, print_banner
@@ -21,13 +21,52 @@ from ..utils.logger import log_info, log_warn, log_error, log_step, print_banner
 JS_MULTI_TAB_INJECT = """
 var flue = Process.findModuleByName("flue.dll");
 if (flue) {
-    var vtableAddr = flue.base.add(0xbdcab88);
-    var executeScriptPtr = flue.base.add(0x90c49d0);
-    var fromUtf8Ptr = flue.base.add(0x4a0aed0);
+    // 适配 RadiumWMPF Build 25799 与 Build 25510 双版本
+    var fromUtf8Ptr = flue.base.add(0x4aea160);
+    var executeScriptPtr = flue.base.add(0x9192440);
+    var fnObserver = flue.base.add(0x3799e40);
 
-    var executeScript = new NativeFunction(executeScriptPtr, 'pointer', ['pointer', 'pointer']);
-    var fromUtf8 = new NativeFunction(fromUtf8Ptr, 'pointer', ['pointer', 'pointer']);
+    var chiiCode = "(function(){try{if(window.__CHII_INJECTED__)return;window.__CHII_INJECTED__=true;window.ChiiServerUrl='http://127.0.0.1:8080/';var s=document.createElement('script');s.src='http://127.0.0.1:8080/target.js';(document.head||document.documentElement||document.body).appendChild(s);console.log('[DevTools] Attached: ' + window.location.href);}catch(e){console.error(e);}})();";
+    var payloadBuf = Memory.allocUtf8String(chiiCode);
+    var payloadLen = chiiCode.length;
 
+    // 1. 动态挂钩 WebString::FromUTF8 拦截注入
+    try {
+        Interceptor.attach(fromUtf8Ptr, {
+            onEnter: function(args) {
+                var piecePtr = args[1];
+                if (!piecePtr.isNull()) {
+                    try {
+                        var strPtr = piecePtr.readPointer();
+                        var len = piecePtr.add(8).readU64().toInt32();
+                        if (len > 300) {
+                            var head = strPtr.readUtf8String(Math.min(len, 60));
+                            if (head.indexOf("createAndAddFloatWindow") !== -1 || len === 6166) {
+                                var orig = strPtr.readUtf8String(len);
+                                var combined = chiiCode + "\\n" + orig;
+                                var combBuf = Memory.allocUtf8String(combined);
+                                piecePtr.writePointer(combBuf);
+                                piecePtr.add(8).writeU64(combined.length);
+                                send({event: "frames_injected", count: 1});
+                            }
+                        }
+                    } catch(e) {}
+                }
+            }
+        });
+    } catch(e) {}
+
+    // 2. 挂钩 RenderFrameObserver 页面生命周期
+    try {
+        Interceptor.attach(fnObserver, {
+            onEnter: function(args) {
+                send({event: "observer_event_called"});
+            }
+        });
+    } catch(e) {}
+
+    // 3. 扫描定位已加载的页面进行主动注入
+    // 适配 Build 25799: 精准定位 Observer 虚表 0xbd7e250，Frame 链条为 obj -> +8(rf) -> +0x78(frame)
     var mainThreadId = null;
     Process.enumerateThreads().forEach(function(t) {
         if (t.name === "CrRendererMain") {
@@ -35,26 +74,51 @@ if (flue) {
         }
     });
 
-    var allFrames = [];
+    var targetFrames = [];
+    var vtable250 = flue.base.add(0xbd7e250);
     Process.enumerateRanges('rw-').forEach(function(r) {
-        if (r.size > 1024 * 1024 * 64) return;
+        if (targetFrames.length > 5 || r.size > 1024 * 1024 * 64) return;
         try {
-            var results = Memory.scanSync(r.base, r.size, vtableAddr.toMatchPattern());
-            for (var i = 0; i < results.length; i++) {
-                allFrames.push(results[i].address);
+            var res = Memory.scanSync(r.base, r.size, vtable250.toMatchPattern());
+            for (var i = 0; i < res.length; i++) {
+                var obj = res[i].address;
+                try {
+                    var rf = obj.add(8).readPointer();
+                    if (!rf.isNull()) {
+                        var frame = rf.add(0x78).readPointer();
+                        if (!frame.isNull()) {
+                            targetFrames.push(frame);
+                        }
+                    }
+                } catch(e) {}
             }
         } catch(e) {}
     });
 
-    send({event: "frames_detected", frames: allFrames.map(function(f){return f.toString();})});
+    // 兼容回退旧版本 vtable
+    if (targetFrames.length === 0) {
+        var legacy_vtables = [0xbd7e230, 0xbd88a70, 0xbdcc870, 0xbdcfb88, 0xbdcab88];
+        legacy_vtables.forEach(function(vtOff) {
+            var vtAddr = flue.base.add(vtOff);
+            Process.enumerateRanges('rw-').forEach(function(r) {
+                if (targetFrames.length > 5 || r.size > 1024 * 1024 * 64) return;
+                try {
+                    var res = Memory.scanSync(r.base, r.size, vtAddr.toMatchPattern());
+                    for (var i = 0; i < res.length; i++) targetFrames.push(res[i].address);
+                } catch(e) {}
+            });
+        });
+    }
 
-    if (mainThreadId && allFrames.length > 0) {
-        var jsCode = "(function(){try{if(window.__CHII_INJECTED__)return;window.__CHII_INJECTED__=true;window.ChiiServerUrl='http://127.0.0.1:8080/';var s=document.createElement('script');s.src='http://127.0.0.1:8080/target.js';(document.head||document.documentElement||document.body).appendChild(s);console.log('[DevTools] Attached: ' + window.location.href);}catch(e){console.error(e);}})();";
-        var jsBuf = Memory.allocUtf8String(jsCode);
+    send({event: "frames_detected", frames: targetFrames.map(function(f){return f.toString();})});
+
+    if (mainThreadId && targetFrames.length > 0) {
+        var executeScript = new NativeFunction(executeScriptPtr, 'pointer', ['pointer', 'pointer']);
+        var fromUtf8 = new NativeFunction(fromUtf8Ptr, 'pointer', ['pointer', 'pointer']);
 
         var piece = Memory.alloc(16);
-        piece.writePointer(jsBuf);
-        piece.add(8).writeU64(jsCode.length);
+        piece.writePointer(payloadBuf);
+        piece.add(8).writeU64(payloadLen);
 
         var webString = Memory.alloc(8);
         webString.writePointer(ptr(0));
@@ -66,13 +130,15 @@ if (flue) {
 
         Process.runOnThread(mainThreadId, function() {
             var injectedCount = 0;
-            for (var i = 0; i < allFrames.length; i++) {
+            for (var i = 0; i < targetFrames.length; i++) {
                 try {
-                    executeScript(allFrames[i], scriptSource);
+                    executeScript(targetFrames[i], scriptSource);
                     injectedCount++;
                 } catch(e) {}
             }
-            send({event: "frames_injected", count: injectedCount});
+            if (injectedCount > 0) {
+                send({event: "frames_injected", count: injectedCount});
+            }
         });
     }
 }
@@ -115,6 +181,7 @@ class ArticleDevToolsEngine:
         self.opened_target_ids: Set[str] = set()
         self.chii_process: Optional[subprocess.Popen] = None
         self.master_sessions: Dict[int, Any] = {}
+        self.renderer_sessions: Dict[int, Any] = {}
 
     def ensure_chii_server(self):
         """确保本地 Chii DevTools 服务端处于运行状态"""
@@ -130,7 +197,6 @@ class ArticleDevToolsEngine:
         node_exe = shutil.which("node")
         npx_exe = shutil.which("npx")
 
-        # 查找项目中是否有本地 node_modules/chii
         root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         local_chii = os.path.join(root_dir, "node_modules", "chii", "bin", "chii.js")
 
@@ -193,7 +259,6 @@ class ArticleDevToolsEngine:
             log_error("未检测到 frida 模块，请先运行: pip install frida")
             return
 
-        # 友好诊断：检查微信是否已启动
         wechat_running = False
         for p in psutil.process_iter(['name']):
             try:
@@ -212,15 +277,14 @@ class ArticleDevToolsEngine:
         # 挂载宿主进程沙箱拦截
         self.hook_master_processes()
 
-        # 检查并自动重置受沙箱保护的旧文章渲染器
+        # 检查并自动重置受沙箱保护的旧进程
         sandboxed_renderers = []
         for p in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
                 name = (p.info['name'] or '').lower()
                 cmd = ' '.join(p.info['cmdline'] or [])
-                if 'wechatappex' in name and '--wmpf-render-type=7' in cmd:
-                    if '--no-sandbox' not in cmd:
-                        sandboxed_renderers.append(p)
+                if 'wechatappex' in name and '--no-sandbox' not in cmd:
+                    sandboxed_renderers.append(p)
             except Exception:
                 pass
 
@@ -254,14 +318,26 @@ class ArticleDevToolsEngine:
                     except Exception:
                         pass
 
+                # 清理已退出的渲染器会话
+                dead_pids = [pid for pid in self.renderer_sessions if pid not in current_pids]
+                for dpid in dead_pids:
+                    try:
+                        s, sc = self.renderer_sessions.pop(dpid)
+                        s.detach()
+                    except Exception:
+                        pass
+
                 for pid in current_pids:
+                    if pid in self.renderer_sessions:
+                        continue
+
                     known_frames = self.injected_frames_map.setdefault(pid, set())
                     try:
                         s = frida.attach(pid)
                         sc = s.create_script(JS_MULTI_TAB_INJECT)
                         new_frames_detected = []
 
-                        def on_msg(msg, data):
+                        def on_msg(msg, data, p=pid):
                             if msg.get("type") == "send":
                                 payload = msg.get("payload", {})
                                 if payload.get("event") == "frames_detected":
@@ -271,13 +347,12 @@ class ArticleDevToolsEngine:
                                             new_frames_detected.append(f)
                                             known_frames.add(f)
                                 elif payload.get("event") == "frames_injected":
-                                    if new_frames_detected:
-                                        log_info(f"PID {pid} 检测到新Tab页面，成功注入 {len(new_frames_detected)} 个Frame！")
+                                    log_info(f"PID {p} 成功注入 DevTools 审查探针！")
 
                         sc.on("message", on_msg)
                         sc.load()
-                        time.sleep(0.15)
-                        s.detach()
+                        self.renderer_sessions[pid] = (s, sc)
+                        log_info(f"已成功接入文章渲染进程并激活探针 (PID: {pid})")
                     except Exception:
                         pass
 
@@ -312,6 +387,14 @@ class ArticleDevToolsEngine:
                 except Exception:
                     pass
             self.master_sessions.clear()
+
+            for pid, (s, sc) in list(self.renderer_sessions.items()):
+                try:
+                    s.detach()
+                except Exception:
+                    pass
+            self.renderer_sessions.clear()
+
             if self.chii_process and self.chii_process.poll() is None:
                 try:
                     self.chii_process.terminate()
@@ -321,4 +404,3 @@ class ArticleDevToolsEngine:
 def run_article_devtools(port: int = 8080, auto_open: bool = True):
     engine = ArticleDevToolsEngine(port=port, auto_open=auto_open)
     engine.run()
-
